@@ -1,37 +1,38 @@
-# Importamos las librerías necesarias
-import flet as ft  # Flet para crear la interfaz gráfica
-import re  # re para validaciones de texto como correos electrónicos
-import time  # time para simular carga (pausas)
+# Importaciones necesarias
+import flet as ft  # Librería Flet para crear la interfaz gráfica
+import re  # Librería re para validación de correos electrónicos
+import time  # Librería time para simular una carga o proceso de espera
 
-# Clase principal que representa la pantalla de registro de usuarios
+# Clase principal para la pantalla de Registro de Usuarios
 class RegisterApp:
+    # Constructor de la clase
     def __init__(self, page: ft.Page):
         self.page = page  # Guarda la referencia de la página
-        self.show_password = False  # Controla visibilidad de la contraseña
-        self.show_confirm_password = False  # Controla visibilidad de confirmar contraseña
-        self.build()  # Llama a construir la interfaz
+        self.show_password = False  # Estado para mostrar/ocultar contraseña
+        self.show_confirm_password = False  # Estado para mostrar/ocultar confirmación de contraseña
+        self.build()  # Construye la interfaz gráfica
 
-    # Método que construye todos los componentes de la pantalla
+    # Método que construye todos los elementos de la pantalla
     def build(self):
-        # Campos de entrada
+        # Campos de entrada de texto
         self.name = ft.TextField(label="Nombre Completo", width=300, height=50, dense=True)
         self.email = ft.TextField(label="Correo Electrónico", width=300, height=50, dense=True)
         self.username = ft.TextField(label="Usuario", width=300, height=50, dense=True)
-        
-        # Campo para contraseña con botón para mostrar/ocultar
+
+        # Campo de contraseña con botón para mostrar/ocultar el contenido
         self.password = ft.TextField(
             label="Contraseña",
-            password=True,
+            password=True,  # Ocultar texto por defecto
             width=300,
             height=50,
             dense=True,
-            suffix=ft.IconButton(
-                icon=ft.icons.VISIBILITY_OFF,  # Icono de ojo cerrado
-                on_click=self.toggle_password,  # Al hacer clic cambia visibilidad
+            suffix=ft.IconButton(  # Icono al final del campo
+                icon=ft.icons.VISIBILITY_OFF,
+                on_click=self.toggle_password,  # Alternar visibilidad al hacer clic
             ),
         )
-        
-        # Campo para confirmar la contraseña con botón para mostrar/ocultar
+
+        # Campo para confirmar la contraseña con botón de mostrar/ocultar
         self.confirm_password = ft.TextField(
             label="Confirmar Contraseña",
             password=True,
@@ -40,59 +41,66 @@ class RegisterApp:
             dense=True,
             suffix=ft.IconButton(
                 icon=ft.icons.VISIBILITY_OFF,
-                on_click=self.toggle_confirm_password,
+                on_click=self.toggle_confirm_password,  # Alternar visibilidad
             ),
         )
 
-        # Botón de "Crear Cuenta"
+        # Botón principal para crear la cuenta
         register_button = ft.ElevatedButton(
             "Crear Cuenta",
             bgcolor="#43D9A2",  # Color verde agua
             color="#FFFFFF",  # Texto blanco
             style=ft.ButtonStyle(
                 shape=ft.RoundedRectangleBorder(radius=20),  # Botón redondeado
-                elevation=5,  # Sombra ligera
+                elevation=5,  # Sombra de botón
             ),
             width=220,
             height=45,
-            on_click=self.confirm_register  # Llama a confirmación antes de registrar
+            on_click=self.confirm_register  # Antes de crear, confirma acción
         )
 
-        # Botón para regresar al login
+        # Botón de regreso al login
         back_button = ft.TextButton("Volver al Login", on_click=self.back_to_login)
 
-        # Limpia controles previos y agrega los nuevos en un contenedor organizado
+        # Limpia la página y agrega los nuevos componentes
         self.page.controls.clear()
         self.page.add(
             ft.Column([
-                ft.Text("Crear Cuenta", size=36, weight="bold", text_align="center"),  # Título
-                ft.Container(height=20),  # Espaciador
-                self.name,
-                self.email,
-                self.username,
-                self.password,
-                self.confirm_password,
-                ft.Container(height=20),  # Espaciador
-                register_button,
-                ft.Container(height=10),
-                back_button,
+                ft.Text("Crear Cuenta", size=36, weight="bold", text_align="center"),  # Título principal
+                ft.Container(height=5),  # Espaciador pequeño
+                ft.Image(
+                    src="assets/Cuenta.png",  # Imagen decorativa del registro
+                    width=150,
+                    height=150,
+                    fit=ft.ImageFit.CONTAIN  # Ajuste proporcional
+                ),
+                ft.Container(height=10),  # Espaciador
+                self.name,  # Campo nombre
+                self.email,  # Campo email
+                self.username,  # Campo usuario
+                self.password,  # Campo contraseña
+                self.confirm_password,  # Campo confirmar contraseña
+                ft.Container(height=10),  # Espaciador
+                register_button,  # Botón crear cuenta
+                ft.Container(height=5),  # Espaciador
+                back_button,  # Botón regresar
             ],
             alignment=ft.MainAxisAlignment.CENTER,  # Centrado vertical
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,  # Centrado horizontal
-            spacing=15)  # Espacio entre elementos
+            spacing=10)  # Espaciado entre componentes
         )
-        self.page.update()  # Actualiza la página
+        self.page.update()  # Actualiza la pantalla
 
-    # Método para alternar visibilidad de la contraseña principal
+    # Método para alternar visibilidad del campo de contraseña
     def toggle_password(self, e):
         self.show_password = not self.show_password  # Cambia el estado
-        self.password.password = not self.show_password  # Actualiza campo
+        self.password.password = not self.show_password  # Cambia visibilidad
         self.password.suffix.icon = (
             ft.icons.VISIBILITY if self.show_password else ft.icons.VISIBILITY_OFF
-        )  # Cambia el icono
+        )  # Cambia el icono del botón
         self.page.update()
 
-    # Método para alternar visibilidad de confirmar contraseña
+    # Método para alternar visibilidad del campo de confirmar contraseña
     def toggle_confirm_password(self, e):
         self.show_confirm_password = not self.show_confirm_password
         self.confirm_password.password = not self.show_confirm_password
@@ -101,73 +109,73 @@ class RegisterApp:
         )
         self.page.update()
 
-    # Método que lanza un cuadro de confirmación antes de registrar
+    # Método para mostrar un cuadro de diálogo de confirmación antes de registrar
     def confirm_register(self, e):
         self.dialog = ft.AlertDialog(
             modal=True,  # No permite interactuar fuera del cuadro
             title=ft.Text("Confirmar Registro"),  # Título del cuadro
             content=ft.Text("¿Seguro que quieres crear la cuenta?"),  # Mensaje
-            actions=[  # Botones del cuadro
+            actions=[  # Botones de acción
                 ft.TextButton("Cancelar", on_click=self.close_dialog),
                 ft.TextButton("Sí, crear cuenta", on_click=self.register),
             ],
         )
         self.page.dialog = self.dialog
-        self.dialog.open = True  # Abre el cuadro
+        self.dialog.open = True
         self.page.update()
 
-    # Cierra el cuadro de diálogo
+    # Método para cerrar el cuadro de confirmación
     def close_dialog(self, e):
         self.dialog.open = False
         self.page.update()
 
-    # Método principal para procesar el registro
+    # Método que realiza el proceso de registro
     def register(self, e):
-        self.dialog.open = False  # Cierra el cuadro de confirmación
+        self.dialog.open = False  # Cierra el cuadro
         self.page.update()
 
-        # Validar que todos los campos estén llenos
+        # Validar que no haya campos vacíos
         if not all([self.name.value, self.email.value, self.username.value, self.password.value, self.confirm_password.value]):
             self.show_snackbar("Completa todos los campos.", "red")
             return
 
-        # Validar el formato del correo electrónico
+        # Validar que el correo sea válido
         if not self.is_valid_email(self.email.value):
             self.show_snackbar("Correo electrónico no válido.", "red")
             return
 
-        # Validar que las contraseñas coincidan
+        # Validar que las contraseñas sean iguales
         if self.password.value != self.confirm_password.value:
             self.show_snackbar("Las contraseñas no coinciden.", "red")
             return
 
-        # Simular proceso de creación de cuenta
+        # Simular creación de cuenta con barra de progreso
         self.page.overlay.append(
-            ft.ProgressBar(width=300)  # Muestra barra de carga
+            ft.ProgressBar(width=300)
         )
         self.page.update()
-        time.sleep(2)  # Simula una espera de 2 segundos (carga)
+        time.sleep(2)  # Simula una espera de 2 segundos
 
-        # Quitar el loader
+        # Quitar barra de carga
         self.page.overlay.clear()
         # Mostrar mensaje de éxito
         self.show_snackbar("¡Cuenta creada exitosamente! 🎉", "green")
 
-    # Función auxiliar para mostrar snackbars (mensajes emergentes abajo)
+    # Método auxiliar para mostrar mensajes emergentes (snackbars)
     def show_snackbar(self, message, color):
         self.page.snack_bar = ft.SnackBar(
-            content=ft.Text(message),  # Mensaje
-            bgcolor=color  # Color de fondo
+            content=ft.Text(message),
+            bgcolor=color
         )
-        self.page.snack_bar.open = True  # Abre el snackbar
+        self.page.snack_bar.open = True
         self.page.update()
 
-    # Función para validar el formato de un correo electrónico
+    # Función que valida si un correo tiene formato correcto
     def is_valid_email(self, email):
-        return bool(re.match(r"[^@]+@[^@]+\.[^@]+", email))  # Patrón simple de validación
+        return bool(re.match(r"[^@]+@[^@]+\.[^@]+", email))  # Valida con expresión regular
 
     # Método para regresar a la pantalla de login
     def back_to_login(self, e):
-        from LoginApp import LoginApp  # Importa la clase LoginApp
-        self.page.controls.clear()  # Limpia controles actuales
-        LoginApp(self.page)  # Carga la pantalla de login
+        from LoginApp import LoginApp  # Importa la clase de login
+        self.page.controls.clear()  # Limpia la página
+        LoginApp(self.page)  # Llama a la clase de login

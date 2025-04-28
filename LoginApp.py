@@ -141,7 +141,9 @@ class LoginApp:
 
     # Acción al presionar "¿Olvidaste tu contraseña?".
     def recover(self, e):
-        print("Ir a pantalla de Recuperar Cuenta")  # Simula ir a la pantalla de recuperación.
+        from RecoveryApp import RecoveryApp
+        self.page.controls.clear()
+        RecoveryApp(self.page)
 
     # Acción simulada de login con Google.
     def login_google(self, e):
