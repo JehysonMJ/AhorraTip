@@ -135,7 +135,9 @@ class LoginApp:
 
     # Acción al presionar "Crear Cuenta".
     def register(self, e):
-        print("Ir a pantalla de Registro")  # Simula ir a la pantalla de registro.
+        from RegisterApp import RegisterApp
+        self.page.controls.clear()
+        RegisterApp(self.page)
 
     # Acción al presionar "¿Olvidaste tu contraseña?".
     def recover(self, e):
