@@ -6,7 +6,7 @@ def main(page: ft.Page):
     # Configura propiedades de la página.
     page.title = "Control de Finanzas"  # Establece el título de la página.
     page.theme_mode = ft.ThemeMode.DARK  # Usa el modo oscuro.
-    page.bgcolor = "#1b2a17"  # Define el color de fondo (verde oscuro).
+    page.bgcolor = "#0d1117"  # Define el color de fondo (verde oscuro).
 
     # Campo de texto editable para mostrar/modificar el total de dinero.
     total_field = ft.TextField(
