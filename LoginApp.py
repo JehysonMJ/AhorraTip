@@ -165,7 +165,7 @@ class LoginApp:
 
 # Función principal que configura la página principal.
 def main(page: ft.Page):
-    page.title = "AhorraTip Login"  # Título de la ventana.
+    page.title = "AhorraTip APP"  # Título de la ventana.
     page.theme_mode = ft.ThemeMode.DARK  # Tema oscuro activado.
     page.vertical_alignment = ft.MainAxisAlignment.CENTER  # Centrado vertical de los elementos.
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER  # Centrado horizontal de los elementos.
