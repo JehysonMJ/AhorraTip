@@ -1,25 +1,29 @@
-import flet as ft
-import datetime
-import time
+# Importación de módulos necesarios
+import flet as ft  # Flet para crear la interfaz gráfica
+import datetime  # Para obtener la fecha actual
+import time  # Para simular una pausa después de registrar
 
+# Clase principal para añadir una transacción
 class AddTransactionApp:
     def __init__(self, page: ft.Page):
-        self.page = page
-        self.selected_category = None
-        self.transaction_type = "GASTOS"
-        self.build()
+        self.page = page  # Guarda referencia a la página actual
+        self.selected_category = None  # Categoría seleccionada (ninguna al inicio)
+        self.transaction_type = "GASTOS"  # Tipo de transacción activa (GASTOS o INGRESOS)
+        self.build()  # Construye la interfaz
 
+    # Método que construye toda la interfaz de la pantalla
     def build(self):
+        # Campo de texto para ingresar el monto
         self.amount_field = ft.TextField(
-            hint_text="0",
+            hint_text="0",  # Texto guía
             text_align=ft.TextAlign.CENTER,
             width=200,
             height=60,
-            text_style=ft.TextStyle(size=28, weight="bold"),
-            suffix_text="MXN"
+            text_style=ft.TextStyle(size=28, weight="bold"),  # Estilo grande y negrita
+            suffix_text="MXN"  # Moneda al final
         )
 
-        # Nueva fila de botones simulando tabs centrados
+        # Fila de pestañas para cambiar entre GASTOS e INGRESOS
         tabs = ft.Row([
             ft.Container(
                 content=ft.TextButton(
@@ -53,11 +57,14 @@ class AddTransactionApp:
             )
         ])
 
+        # Sección de categorías
         categories = self.build_categories()
 
+        # Texto con la fecha actual
         today = datetime.date.today().strftime("%d/%m")
         self.date_text = ft.Text(f"Hoy ({today})", size=14)
 
+        # Campo para ingresar un comentario
         self.comment_field = ft.TextField(
             label="Comentario",
             multiline=True,
@@ -66,6 +73,7 @@ class AddTransactionApp:
             width=300
         )
 
+        # Botón para añadir la transacción
         add_button = ft.ElevatedButton(
             text="Añadir",
             bgcolor="#FFEB3B",
@@ -76,29 +84,33 @@ class AddTransactionApp:
             on_click=self.add_transaction
         )
 
+        # Botón para regresar a la pantalla anterior
         back_button = ft.TextButton("← Volver", on_click=self.go_back)
 
+        # Agrega todos los componentes a la página
         self.page.controls.clear()
-        self.page.floating_action_button = None
+        self.page.floating_action_button = None  # Oculta el botón flotante
         self.page.add(
             ft.Column([
-                ft.Text("Añadir Transacción", size=28, weight="bold"),
-                tabs,
-                self.amount_field,
-                ft.Text("Categorías:", size=16, weight="bold"),
-                categories,
-                self.date_text,
-                self.comment_field,
-                add_button,
-                back_button
+                ft.Text("Añadir Transacción", size=28, weight="bold"),  # Título
+                tabs,  # Pestañas
+                self.amount_field,  # Monto
+                ft.Text("Categorías:", size=16, weight="bold"),  # Etiqueta
+                categories,  # Categorías dinámicas
+                self.date_text,  # Fecha
+                self.comment_field,  # Comentario
+                add_button,  # Botón para guardar
+                back_button  # Botón para volver
             ],
                 alignment=ft.MainAxisAlignment.START,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 spacing=20,
-                scroll=ft.ScrollMode.AUTO)
+                scroll=ft.ScrollMode.AUTO  # Activa scroll automático
+            )
         )
         self.page.update()
 
+    # Método que construye las categorías según el tipo de transacción
     def build_categories(self):
         if self.transaction_type == "GASTOS":
             return ft.Column([
@@ -127,21 +139,21 @@ class AddTransactionApp:
                     self.category_chip("💵", "Beca", "#fdd835"),
                     self.category_chip("🤝", "Pago", "#4dd0e1"),
                     self.category_chip("🎫", "Aguinaldo", "#f06292"),
-                    self.category_chip("➕", "Más", "#90a4ae"),
                 ], alignment=ft.MainAxisAlignment.CENTER, spacing=20),
             ], spacing=20)
 
+    # Método que crea cada categoría con ícono y color
     def category_chip(self, emoji, name, color):
-        selected = (self.selected_category == name)
+        selected = (self.selected_category == name)  # Verifica si está seleccionada
         return ft.GestureDetector(
-            on_tap=lambda e: self.select_category(name),
+            on_tap=lambda e: self.select_category(name),  # Al hacer clic, se selecciona
             content=ft.Container(
                 content=ft.Column([
                     ft.Container(
-                        content=ft.Text(emoji, size=22),
+                        content=ft.Text(emoji, size=22),  # Ícono de la categoría
                         width=60,
                         height=60,
-                        bgcolor=color if not selected else "#000000",
+                        bgcolor=color if not selected else "#000000",  # Si está seleccionada, se oscurece
                         border_radius=30,
                         alignment=ft.alignment.center
                     ),
@@ -153,7 +165,15 @@ class AddTransactionApp:
             )
         )
 
+    # Método para seleccionar categoría o redirigir si se elige "Más"
     def select_category(self, name):
+        if name == "Más":
+            from NuevaCategoria import NuevaCategoria  # Redirige a crear nueva categoría
+            self.page.controls.clear()
+            NuevaCategoria(self.page)
+            return
+
+        # Guarda el valor actual y reconstruye manteniéndolo
         current_amount = self.amount_field.value
         current_comment = self.comment_field.value
         self.selected_category = name
@@ -162,32 +182,43 @@ class AddTransactionApp:
         self.comment_field.value = current_comment
         self.page.update()
 
+    # Cambia el tipo de transacción (GASTOS o INGRESOS)
     def change_tab(self, tab_name):
         self.transaction_type = tab_name
-        self.build()
+        self.build()  # Reconstruye todo con la nueva pestaña activa
 
+    # Método para validar y registrar la transacción
     def add_transaction(self, e):
         monto = self.amount_field.value.strip()
         comentario = self.comment_field.value.strip()
+
+        # Validación del monto
         if not monto or not monto.replace(".", "", 1).isdigit() or float(monto) <= 0:
             self.page.snack_bar = ft.SnackBar(content=ft.Text("Ingresa un monto válido."), bgcolor="red")
             self.page.snack_bar.open = True
             self.page.update()
             return
+
+        # Validación de que haya categoría seleccionada
         if not self.selected_category:
             self.page.snack_bar = ft.SnackBar(content=ft.Text("Selecciona una categoría."), bgcolor="red")
             self.page.snack_bar.open = True
             self.page.update()
             return
+
+        # Muestra mensaje de éxito
         self.page.snack_bar = ft.SnackBar(content=ft.Text("Transacción añadida correctamente ✅"), bgcolor="#c6ff00")
         self.page.snack_bar.open = True
         self.page.update()
-        time.sleep(1)
-        from MainApp import MainApp
+
+        time.sleep(1)  # Espera breve antes de volver a la pantalla principal
+
+        from MainApp import MainApp  # Vuelve a la pantalla principal
         self.page.controls.clear()
         MainApp(self.page)
 
+    # Método para regresar sin añadir transacción
     def go_back(self, e):
-        from MainApp import MainApp
+        from MainApp import MainApp  # Importa la pantalla principal
         self.page.controls.clear()
-        MainApp(self.page)
+        MainApp(self.page)  # Muestra la pantalla principal
