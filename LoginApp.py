@@ -163,14 +163,18 @@ class LoginApp:
     def login_microsoft(self, e):
         print("Login con Microsoft (simulado)")
 
-# Función principal que configura la página principal.
+# Función principal para iniciar con el Splash
 def main(page: ft.Page):
-    page.title = "AhorraTip APP"  # Título de la ventana.
-    page.theme_mode = ft.ThemeMode.DARK  # Tema oscuro activado.
-    page.vertical_alignment = ft.MainAxisAlignment.CENTER  # Centrado vertical de los elementos.
-    page.horizontal_alignment = ft.CrossAxisAlignment.CENTER  # Centrado horizontal de los elementos.
-    LoginApp(page)  # Crea una instancia de la aplicación de login.
+    page.title = "AhorraTip APP"
+    page.theme_mode = ft.ThemeMode.DARK
+    page.vertical_alignment = ft.MainAxisAlignment.CENTER
+    page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
 
-# Verifica que se esté ejecutando este archivo como programa principal.
+    # Mostrar primero el Splash
+    from SplashScreenApp import SplashScreenApp
+    SplashScreenApp(page)
+
+# Ejecutar la app
 if __name__ == "__main__":
-    ft.app(target=main)  # Ejecuta la app en Flet apuntando a la función principal.
+    ft.app(target=main)
+
