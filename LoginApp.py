@@ -131,7 +131,9 @@ class LoginApp:
 
     # Acción al presionar el botón "Iniciar Sesión".
     def login(self, e):
-        print(f"Intentando iniciar sesión como {self.username.value}")  # Imprime el usuario ingresado.
+        from MainApp import MainApp
+        self.page.controls.clear()
+        MainApp(self.page)
 
     # Acción al presionar "Crear Cuenta".
     def register(self, e):
