@@ -120,10 +120,10 @@ class LoginApp:
         usuario = self.username.value.strip()
         contrasena = self.password.value.strip()
 
-        # Indicador de carga centrado
+        # Indicador de carga con imagen GIF personalizada
         loading_overlay = ft.Container(
             content=ft.Column([
-                ft.ProgressRing(color="blue", width=50, height=50),
+                ft.Image(src="assets/loading.gif", width=80, height=80),
                 ft.Text("Verificando...", size=14, color="white")
             ],
             alignment=ft.MainAxisAlignment.CENTER,
@@ -152,6 +152,7 @@ class LoginApp:
             MainApp(self.page)
         else:
             self.show_snackbar("Usuario o contraseña incorrectos.", "red")
+
 
     def register(self, e):
         from RegisterApp import RegisterApp
