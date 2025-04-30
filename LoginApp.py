@@ -120,23 +120,38 @@ class LoginApp:
         usuario = self.username.value.strip()
         contrasena = self.password.value.strip()
 
-        # ⚠️ Asegura que comparas sin espacios en MongoDB también
-        usuario_encontrado = coleccion.find_one({
-            "usuario": {"$regex": f"^{usuario}$", "$options": "i"},  # Insensible a mayúsculas
-            "contraseña": contrasena
-        })
+        # Indicador de carga centrado
+        loading_overlay = ft.Container(
+            content=ft.Column([
+                ft.ProgressRing(color="blue", width=50, height=50),
+                ft.Text("Verificando...", size=14, color="white")
+            ],
+            alignment=ft.MainAxisAlignment.CENTER,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+            alignment=ft.alignment.center,
+            bgcolor=ft.colors.with_opacity(0.6, ft.colors.BLACK),
+            width=self.page.width,
+            height=self.page.height
+        )
+
+        self.page.overlay.append(loading_overlay)
+        self.page.update()
+
+        try:
+            usuario_encontrado = coleccion.find_one({
+                "usuario": {"$regex": f"^{usuario}$", "$options": "i"},
+                "contraseña": contrasena
+            })
+        finally:
+            self.page.overlay.remove(loading_overlay)
+            self.page.update()
 
         if usuario_encontrado:
             from MainApp import MainApp
             self.page.controls.clear()
             MainApp(self.page)
         else:
-            self.page.snack_bar = ft.SnackBar(
-                content=ft.Text("Usuario o contraseña incorrectos."),
-                bgcolor="red"
-            )
-            self.page.snack_bar.open = True
-            self.page.update()
+            self.show_snackbar("Usuario o contraseña incorrectos.", "red")
 
 
 
