@@ -12,7 +12,7 @@ class MainApp:
     def build(self):
         # Campo de texto editable para el total
         self.total_input = ft.TextField(
-            value="1870",  # Valor inicial
+            value="0",  # Valor inicial
             text_align=ft.TextAlign.CENTER,  # Texto centrado
             width=120,
             height=40,
