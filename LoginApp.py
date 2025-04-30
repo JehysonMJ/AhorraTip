@@ -153,8 +153,6 @@ class LoginApp:
         else:
             self.show_snackbar("Usuario o contraseña incorrectos.", "red")
 
-
-
     def register(self, e):
         from RegisterApp import RegisterApp
         self.page.controls.clear()
