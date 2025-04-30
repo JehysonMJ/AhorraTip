@@ -1,5 +1,6 @@
 # Importa la librería Flet para crear interfaces gráficas
 import flet as ft
+from Sesion import usuario_actual  # ✅ Importar usuario logueado
 
 # Clase principal de la aplicación
 class MainApp:
@@ -10,6 +11,9 @@ class MainApp:
 
     # Método que arma toda la interfaz de la pantalla principal
     def build(self):
+        # ✅ Saludo personalizado con el nombre del usuario
+        saludo = ft.Text(f"Hola, {usuario_actual} 👋", size=20, weight="bold", color="white", text_align="center")
+
         # Campo de texto editable para el total
         self.total_input = ft.TextField(
             value="0",  # Valor inicial
@@ -24,19 +28,17 @@ class MainApp:
             on_change=self.total_updated  # Detecta cambios para mostrar notificación
         )
 
-        # Encabezado superior que contiene menú, total y botón de historial
+        # Encabezado superior
         header = ft.Container(
             bgcolor="#2e7d32",  # Verde oscuro
-            padding=ft.padding.symmetric(horizontal=15, vertical=12),  # Espaciado interno
+            padding=ft.padding.symmetric(horizontal=15, vertical=12),
             content=ft.Row([
-                # Botón de menú
                 ft.IconButton(
                     icon=ft.icons.MENU,
                     icon_color="white",
                     on_click=lambda e: print("Abrir menú o ajustes"),
                     tooltip="Menú"
                 ),
-                # Columna central con ícono de ahorro, texto "Total" y campo editable
                 ft.Column([
                     ft.Row([
                         ft.Icon(name=ft.icons.SAVINGS, color="white", size=20),
@@ -44,12 +46,11 @@ class MainApp:
                     ],
                     alignment=ft.MainAxisAlignment.CENTER,
                     spacing=5),
-                    self.total_input  # Campo editable
+                    self.total_input
                 ],
                 alignment=ft.MainAxisAlignment.CENTER,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 expand=1),
-                # Botón de historial
                 ft.IconButton(
                     icon=ft.icons.RECEIPT_LONG,
                     icon_color="white",
@@ -59,12 +60,10 @@ class MainApp:
             ])
         )
 
-        # Pestañas de navegación: Gastos e Ingresos
-        self.active_tab = "GASTOS"  # Pestaña activa inicialmente
+        self.active_tab = "GASTOS"
         self.tab_gastos = ft.TextButton("GASTOS", on_click=self.set_tab, data="GASTOS")
         self.tab_ingresos = ft.TextButton("INGRESOS", on_click=self.set_tab, data="INGRESOS")
 
-        # Selector de periodo de tiempo
         period_selector = ft.Row([
             ft.TextButton("Día", on_click=self.change_period),
             ft.TextButton("Semana", on_click=self.change_period),
@@ -73,46 +72,44 @@ class MainApp:
             ft.TextButton("Período", on_click=self.change_period),
         ], alignment=ft.MainAxisAlignment.CENTER)
 
-        # Texto de fecha de la semana seleccionada
         date_range = ft.Text("28 abr – 4 may", size=16, weight="bold")
 
-        # Mensaje central que cambia según la pestaña activa
         self.center_message = ft.Text(
             "No hubo gastos esta semana", size=16, text_align="center"
         )
 
-        # Tarjeta central que agrupa todo: tabs, periodo, fecha y mensaje
         card = ft.Container(
             content=ft.Column([
                 ft.Row([self.tab_gastos, self.tab_ingresos], alignment=ft.MainAxisAlignment.CENTER),
                 period_selector,
-                ft.Container(height=5),  # Separador pequeño
+                ft.Container(height=5),
                 date_range,
-                ft.Container(height=25),  # Separador grande
+                ft.Container(height=25),
                 ft.Container(
                     content=self.center_message,
                     alignment=ft.alignment.center,
                     width=250,
                     height=250,
-                    border_radius=125,  # Para que sea un círculo
-                    bgcolor="#cfd8dc"  # Fondo gris claro
+                    border_radius=125,
+                    bgcolor="#cfd8dc"
                 )
             ],
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             spacing=10),
             padding=20,
-            bgcolor="#1e1e1e",  # Fondo de la tarjeta oscuro
-            border_radius=20,  # Bordes redondeados
-            shadow=ft.BoxShadow(blur_radius=10, spread_radius=1, color="black")  # Sombra
+            bgcolor="#1e1e1e",
+            border_radius=20,
+            shadow=ft.BoxShadow(blur_radius=10, spread_radius=1, color="black")
         )
 
-        # Limpia controles actuales y agrega los nuevos
+        # ✅ Agrega saludo arriba del header
         self.page.controls.clear()
         self.page.add(
             ft.Column([
-                header,  # Agrega el encabezado
-                ft.Container(height=20),  # Espaciador
-                card,  # Agrega la tarjeta central
+                saludo,    # 👈 Saludo personalizado aquí
+                header,
+                ft.Container(height=20),
+                card,
             ],
             alignment=ft.MainAxisAlignment.START,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -120,44 +117,37 @@ class MainApp:
         )
         self.page.update()
 
-        # Botón flotante amarillo para agregar nueva transacción
         floating_button = ft.FloatingActionButton(
-            icon=ft.icons.ADD,  # Ícono "+"
-            bgcolor="#FFEB3B",  # Color amarillo
-            shape=ft.CircleBorder(),  # Forma de círculo
-            tooltip="Agregar ingreso/gasto",  # Texto flotante
-            on_click=self.add_transaction  # Acción al hacer clic
+            icon=ft.icons.ADD,
+            bgcolor="#FFEB3B",
+            shape=ft.CircleBorder(),
+            tooltip="Agregar ingreso/gasto",
+            on_click=self.add_transaction
         )
 
-        # Asigna el botón flotante a la página
         self.page.floating_action_button = floating_button
         self.page.update()
 
-    # Método para cambiar entre pestañas (GASTOS o INGRESOS)
     def set_tab(self, e):
-        self.active_tab = e.control.data  # Cambia la pestaña activa
-        # Actualiza el mensaje central según la pestaña
+        self.active_tab = e.control.data
         self.center_message.value = (
             "No hubo gastos esta semana" if self.active_tab == "GASTOS" else "No hubo ingresos esta semana"
         )
         self.page.update()
 
-    # Método que responde al cambiar el periodo (día, semana, mes, año)
     def change_period(self, e):
-        print(f"Período cambiado a: {e.control.text}")  # Imprime en consola el periodo elegido
+        print(f"Período cambiado a: {e.control.text}")
 
-    # Método que muestra una notificación al cambiar el total
     def total_updated(self, e):
         self.page.snack_bar = ft.SnackBar(
-            content=ft.Text(f"Monto actualizado: ${self.total_input.value}"),  # Mensaje dinámico
-            bgcolor="#43A047",  # Verde
-            duration=1500  # Dura 1.5 segundos
+            content=ft.Text(f"Monto actualizado: ${self.total_input.value}"),
+            bgcolor="#43A047",
+            duration=1500
         )
         self.page.snack_bar.open = True
         self.page.update()
 
-    # Método para simular la adición de una nueva transacción
     def add_transaction(self, e):
-        from NuevaTransaccion import AddTransactionApp  # Importa el módulo de nueva transacción
-        self.page.controls.clear()  # Limpia la pantalla actual
-        AddTransactionApp(self.page)  # Carga la nueva pantalla
+        from NuevaTransaccion import AddTransactionApp
+        self.page.controls.clear()
+        AddTransactionApp(self.page)

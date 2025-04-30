@@ -2,6 +2,15 @@
 import flet as ft  # Flet para crear la interfaz gráfica
 import datetime  # Para obtener la fecha actual
 import time  # Para simular una pausa después de registrar
+from Sesion import usuario_actual
+from pymongo import MongoClient
+import certifi
+
+def conectar_mongo():
+    client = MongoClient("mongodb+srv://jmj252004:3lBz9QwY7Uc0If2T@ahorratip.jvgcrrh.mongodb.net/?retryWrites=true&w=majority",
+                         tlsCAFile=certifi.where())
+    db = client["AhorraTip"]
+    return db
 
 # Clase principal para añadir una transacción
 class AddTransactionApp:
@@ -110,6 +119,11 @@ class AddTransactionApp:
         )
         self.page.update()
 
+    def go_back(self, e):
+        from MainApp import MainApp
+        self.page.controls.clear()
+        MainApp(self.page)
+        
     # Método que construye las categorías según el tipo de transacción
     def build_categories(self):
         if self.transaction_type == "GASTOS":
@@ -192,33 +206,43 @@ class AddTransactionApp:
         monto = self.amount_field.value.strip()
         comentario = self.comment_field.value.strip()
 
-        # Validación del monto
         if not monto or not monto.replace(".", "", 1).isdigit() or float(monto) <= 0:
             self.page.snack_bar = ft.SnackBar(content=ft.Text("Ingresa un monto válido."), bgcolor="red")
             self.page.snack_bar.open = True
             self.page.update()
             return
 
-        # Validación de que haya categoría seleccionada
         if not self.selected_category:
             self.page.snack_bar = ft.SnackBar(content=ft.Text("Selecciona una categoría."), bgcolor="red")
             self.page.snack_bar.open = True
             self.page.update()
             return
 
-        # Muestra mensaje de éxito
+        # 🟢 Crear documento para guardar en MongoDB
+        from datetime import datetime
+        from LoginApp import conectar_mongo
+
+        db = conectar_mongo()
+        gastos_col = db["gastos"]
+
+        gasto = {
+            "usuario": usuario_actual,  # Aquí podrías usar el usuario activo
+            "categoria": self.selected_category,
+            "emoji": "",  # Si manejas emoji, puedes añadirlo
+            "color": "",  # Lo mismo con color
+            "monto": float(monto),
+            "comentario": comentario,
+            "fecha": datetime.now().isoformat(),
+            "tipo": self.transaction_type
+        }
+
+        gastos_col.insert_one(gasto)
+
         self.page.snack_bar = ft.SnackBar(content=ft.Text("Transacción añadida correctamente ✅"), bgcolor="#c6ff00")
         self.page.snack_bar.open = True
         self.page.update()
+        time.sleep(1)
 
-        time.sleep(1)  # Espera breve antes de volver a la pantalla principal
-
-        from MainApp import MainApp  # Vuelve a la pantalla principal
+        from MainApp import MainApp
         self.page.controls.clear()
         MainApp(self.page)
-
-    # Método para regresar sin añadir transacción
-    def go_back(self, e):
-        from MainApp import MainApp  # Importa la pantalla principal
-        self.page.controls.clear()
-        MainApp(self.page)  # Muestra la pantalla principal

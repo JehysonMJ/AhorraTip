@@ -1,6 +1,7 @@
 import flet as ft
 from pymongo import MongoClient
 import certifi
+from Sesion import usuario_actual
 
 # Conexión a MongoDB
 def conectar_mongo():
@@ -115,7 +116,9 @@ class LoginApp:
         self.page.update()
 
     # ✅ LOGIN CONECTADO A MONGODB
-    def login(self, e):
+    def login(self, e): 
+        from Sesion import usuario_actual  # Importa la variable global
+
         coleccion = conectar_mongo()
         usuario = self.username.value.strip()
         contrasena = self.password.value.strip()
@@ -147,12 +150,14 @@ class LoginApp:
             self.page.update()
 
         if usuario_encontrado:
+            from Sesion import set_usuario_actual
+            set_usuario_actual(usuario_encontrado["usuario"])  # ✅ Asigna el nombre del usuario
             from MainApp import MainApp
             self.page.controls.clear()
             MainApp(self.page)
+
         else:
             self.show_snackbar("Usuario o contraseña incorrectos.", "red")
-
 
     def register(self, e):
         from RegisterApp import RegisterApp
