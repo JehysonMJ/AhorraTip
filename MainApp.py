@@ -1,36 +1,78 @@
-# Importa la librería Flet para crear interfaces gráficas
 import flet as ft
-from Sesion import usuario_actual  # ✅ Importar usuario logueado
+from datetime import datetime, timedelta
+from LoginApp import conectar_mongo
+from Sesion import usuario_actual
 
-# Clase principal de la aplicación
+def obtener_gastos_semana_actual():
+    db = conectar_mongo()
+    coleccion = db["gastos"]
+    hoy = datetime.now()
+    inicio_semana = hoy - timedelta(days=hoy.weekday())
+    fin_semana = inicio_semana + timedelta(days=6)
+    gastos = list(coleccion.find({
+        "usuario": {"$regex": f"^{usuario_actual.strip()}$", "$options": "i"},  # Búsqueda insensible a mayúsculas y sin espacios
+        "tipo": "GASTOS",
+        "fecha": {
+            "$gte": inicio_semana,
+            "$lte": fin_semana
+        }
+    }))
+    return gastos
+
+def mostrar_grafico_y_lista():
+    gastos = obtener_gastos_semana_actual()
+    if not gastos:
+        return ft.Text("No hubo gastos esta semana", size=16, text_align="center")
+
+    total = sum(g["monto"] for g in gastos)
+    resumen = {}
+    for g in gastos:
+        cat = g["categoria"]
+        resumen[cat] = resumen.get(cat, 0) + g["monto"]
+
+    grafico = ft.Text(f"{round(total)} $", size=28, weight="bold", text_align="center")
+
+    lista_detalles = [
+        ft.Row([
+            ft.Text(cat, expand=1),
+            ft.Text(f"{round((monto/total)*100)} %"),
+            ft.Text(f"{monto:.0f} $")
+        ]) for cat, monto in resumen.items()
+    ]
+
+    return ft.Column([
+        ft.Container(content=grafico, alignment=ft.alignment.center, width=200, height=200, bgcolor="#cfd8dc", border_radius=100),
+        ft.Column(lista_detalles, spacing=5)
+    ],
+    alignment=ft.MainAxisAlignment.CENTER,
+    horizontal_alignment=ft.CrossAxisAlignment.CENTER)
+
 class MainApp:
-    # Constructor que recibe la página principal
     def __init__(self, page: ft.Page):
-        self.page = page  # Guarda la referencia de la página
-        self.build()  # Llama a construir la interfaz
+        self.page = page
+        self.build()
 
-    # Método que arma toda la interfaz de la pantalla principal
     def build(self):
         # ✅ Saludo personalizado con el nombre del usuario
         saludo = ft.Text(f"Hola, {usuario_actual} 👋", size=20, weight="bold", color="white", text_align="center")
 
         # Campo de texto editable para el total
         self.total_input = ft.TextField(
-            value="0",  # Valor inicial
-            text_align=ft.TextAlign.CENTER,  # Texto centrado
+            value="0",
+            text_align=ft.TextAlign.CENTER,
             width=120,
             height=40,
-            border_radius=10,  # Bordes redondeados
-            border_color="transparent",  # Sin borde visible
-            bgcolor="#FFFFFF",  # Fondo blanco
-            color="#000000",  # Texto negro
-            suffix_text="$",  # Símbolo de pesos al final
-            on_change=self.total_updated  # Detecta cambios para mostrar notificación
+            border_radius=10,
+            border_color="transparent",
+            bgcolor="#FFFFFF",
+            color="#000000",
+            suffix_text="$",
+            on_change=self.total_updated
         )
 
         # Encabezado superior
         header = ft.Container(
-            bgcolor="#2e7d32",  # Verde oscuro
+            bgcolor="#2e7d32",
             padding=ft.padding.symmetric(horizontal=15, vertical=12),
             content=ft.Row([
                 ft.IconButton(
@@ -74,8 +116,14 @@ class MainApp:
 
         date_range = ft.Text("28 abr – 4 may", size=16, weight="bold")
 
-        self.center_message = ft.Text(
-            "No hubo gastos esta semana", size=16, text_align="center"
+        # ✅ Aquí definimos correctamente el container dinámico
+        self.center_message_container = ft.Container(
+            content=mostrar_grafico_y_lista(),
+            alignment=ft.alignment.center,
+            width=250,
+            height=250,
+            border_radius=125,
+            bgcolor="#cfd8dc"
         )
 
         card = ft.Container(
@@ -85,14 +133,7 @@ class MainApp:
                 ft.Container(height=5),
                 date_range,
                 ft.Container(height=25),
-                ft.Container(
-                    content=self.center_message,
-                    alignment=ft.alignment.center,
-                    width=250,
-                    height=250,
-                    border_radius=125,
-                    bgcolor="#cfd8dc"
-                )
+                self.center_message_container  # ✅ Usamos el container dinámico aquí
             ],
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             spacing=10),
@@ -102,11 +143,10 @@ class MainApp:
             shadow=ft.BoxShadow(blur_radius=10, spread_radius=1, color="black")
         )
 
-        # ✅ Agrega saludo arriba del header
         self.page.controls.clear()
         self.page.add(
             ft.Column([
-                saludo,    # 👈 Saludo personalizado aquí
+                saludo,
                 header,
                 ft.Container(height=20),
                 card,
@@ -128,11 +168,10 @@ class MainApp:
         self.page.floating_action_button = floating_button
         self.page.update()
 
+
     def set_tab(self, e):
         self.active_tab = e.control.data
-        self.center_message.value = (
-            "No hubo gastos esta semana" if self.active_tab == "GASTOS" else "No hubo ingresos esta semana"
-        )
+        self.actualizar_grafico()  # 🔁 Actualiza la gráfica según pestaña
         self.page.update()
 
     def change_period(self, e):
@@ -151,3 +190,8 @@ class MainApp:
         from NuevaTransaccion import AddTransactionApp
         self.page.controls.clear()
         AddTransactionApp(self.page)
+
+    # 🔁 Nueva función para actualizar el gráfico y lista
+    def actualizar_grafico(self):
+        self.center_message_container.content = mostrar_grafico_y_lista()
+        self.page.update()

@@ -226,13 +226,13 @@ class AddTransactionApp:
         gastos_col = db["gastos"]
 
         gasto = {
-            "usuario": usuario_actual,  # Aquí podrías usar el usuario activo
+            "usuario": usuario_actual.strip(),  # Aquí podrías usar el usuario activo
             "categoria": self.selected_category,
             "emoji": "",  # Si manejas emoji, puedes añadirlo
             "color": "",  # Lo mismo con color
             "monto": float(monto),
             "comentario": comentario,
-            "fecha": datetime.now().isoformat(),
+            "fecha": datetime.now(),
             "tipo": self.transaction_type
         }
 
@@ -245,4 +245,5 @@ class AddTransactionApp:
 
         from MainApp import MainApp
         self.page.controls.clear()
-        MainApp(self.page)
+        main_app = MainApp(self.page)
+        main_app.actualizar_grafico()
