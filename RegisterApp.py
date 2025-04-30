@@ -2,6 +2,14 @@
 import flet as ft  # Librería Flet para crear la interfaz gráfica
 import re  # Librería re para validación de correos electrónicos
 import time  # Librería time para simular una carga o proceso de espera
+from pymongo import MongoClient
+import certifi
+
+def conectar_mongo():
+    client = MongoClient("mongodb+srv://jmj252004:3lBz9QwY7Uc0If2T@ahorratip.jvgcrrh.mongodb.net/", tlsCAFile=certifi.where())
+    db = client["AhorraTip"]
+    return db["usuarios"]
+
 
 # Clase principal para la pantalla de Registro de Usuarios
 class RegisterApp:
@@ -131,35 +139,49 @@ class RegisterApp:
 
     # Método que realiza el proceso de registro
     def register(self, e):
-        self.dialog.open = False  # Cierra el cuadro
+        self.dialog.open = False
         self.page.update()
 
-        # Validar que no haya campos vacíos
+        # Validaciones
         if not all([self.name.value, self.email.value, self.username.value, self.password.value, self.confirm_password.value]):
             self.show_snackbar("Completa todos los campos.", "red")
             return
 
-        # Validar que el correo sea válido
         if not self.is_valid_email(self.email.value):
             self.show_snackbar("Correo electrónico no válido.", "red")
             return
 
-        # Validar que las contraseñas sean iguales
         if self.password.value != self.confirm_password.value:
             self.show_snackbar("Las contraseñas no coinciden.", "red")
             return
 
-        # Simular creación de cuenta con barra de progreso
-        self.page.overlay.append(
-            ft.ProgressBar(width=300)
-        )
-        self.page.update()
-        time.sleep(2)  # Simula una espera de 2 segundos
+        # Conexión a la base de datos
+        coleccion = conectar_mongo()
 
-        # Quitar barra de carga
-        self.page.overlay.clear()
-        # Mostrar mensaje de éxito
+        # Verificar si el usuario ya existe
+        if coleccion.find_one({"usuario": self.username.value.strip()}):
+            self.show_snackbar("El usuario ya existe.", "red")
+            return
+
+        # Insertar nuevo usuario
+        nuevo_usuario = {
+            "nombre": self.name.value.strip(),
+            "correo": self.email.value.strip(),
+            "usuario": self.username.value.strip(),
+            "contraseña": self.password.value.strip(),  # Idealmente deberías encriptarla
+            "fecha_registro": time.strftime("%Y-%m-%dT%H:%M:%S")
+        }
+
+        coleccion.insert_one(nuevo_usuario)
+
         self.show_snackbar("¡Cuenta creada exitosamente! 🎉", "green")
+        time.sleep(1)
+
+        # Regresar automáticamente al login
+        from LoginApp import LoginApp
+        self.page.controls.clear()
+        LoginApp(self.page)
+
 
     # Método auxiliar para mostrar mensajes emergentes (snackbars)
     def show_snackbar(self, message, color):
