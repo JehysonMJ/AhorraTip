@@ -8,8 +8,8 @@ def conectar_mongo():
     client = MongoClient("mongodb+srv://jmj252004:3lBz9QwY7Uc0If2T@ahorratip.jvgcrrh.mongodb.net/?retryWrites=true&w=majority",
                          tlsCAFile=certifi.where()
     )
-    db = client["AhorraTip"]  # Reemplaza por tu nombre de base
-    return db["usuarios"]     # Colección de usuarios
+    db = client["AhorraTip"]  # Reemplazamos por el nombre de la base de datos
+    return db["usuarios"]     # La coleccion de usuarios
 
 class LoginApp:
     def __init__(self, page: ft.Page):
@@ -115,9 +115,9 @@ class LoginApp:
         )
         self.page.update()
 
-    # ✅ LOGIN CONECTADO A MONGODB
+    # ✅ LOGIN CONECTADO A MONGO DB
     def login(self, e): 
-        from Sesion import usuario_actual  # Importa la variable global
+        from Sesion import usuario_actual  # Importa nuestra variable global
 
         coleccion = conectar_mongo()
         usuario = self.username.value.strip()
@@ -151,7 +151,7 @@ class LoginApp:
 
         if usuario_encontrado:
             from Sesion import set_usuario_actual
-            set_usuario_actual(usuario_encontrado["usuario"])  # ✅ Asigna el nombre del usuario
+            set_usuario_actual(usuario_encontrado["usuario"])  # ✅ ASIGNA EL NOMBRE AL USUARIO
             from MainApp import MainApp
             self.page.controls.clear()
             MainApp(self.page)
