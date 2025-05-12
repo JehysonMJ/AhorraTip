@@ -151,7 +151,7 @@ class LoginApp:
 
         if usuario_encontrado:
             from Sesion import set_usuario_actual
-            set_usuario_actual(usuario_encontrado["usuario"])  # ✅ Asigna el nombre del usuario
+            set_usuario_actual(usuario_encontrado["usuario"])  # ✅ ASIGNA EL NOMBRE AL USUARIO
             from MainApp import MainApp
             self.page.controls.clear()
             MainApp(self.page)
