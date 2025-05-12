@@ -54,7 +54,7 @@ class MainApp:
 
     def build(self):
         # ✅ Saludo personalizado con el nombre del usuario
-        saludo = ft.Text(f"Hola, {usuario_actual} 👋", size=20, weight="bold", color="white", text_align="center")
+        saludo = ft.Text(f"¡Bienvenido, {usuario_actual} !", size=20, weight="bold", color="white", text_align="center")
 
         # Campo de texto editable para el total
         self.total_input = ft.TextField(
