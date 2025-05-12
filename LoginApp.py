@@ -117,7 +117,7 @@ class LoginApp:
 
     # ✅ LOGIN CONECTADO A MONGO DB
     def login(self, e): 
-        from Sesion import usuario_actual  # Importa la variable global
+        from Sesion import usuario_actual  # Importa nuestra variable global
 
         coleccion = conectar_mongo()
         usuario = self.username.value.strip()
