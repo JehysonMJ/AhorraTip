@@ -115,7 +115,7 @@ class LoginApp:
         )
         self.page.update()
 
-    # ✅ LOGIN CONECTADO A MONGODB
+    # ✅ LOGIN CONECTADO A MONGO DB
     def login(self, e): 
         from Sesion import usuario_actual  # Importa la variable global
 
