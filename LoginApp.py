@@ -8,8 +8,8 @@ def conectar_mongo():
     client = MongoClient("mongodb+srv://jmj252004:3lBz9QwY7Uc0If2T@ahorratip.jvgcrrh.mongodb.net/?retryWrites=true&w=majority",
                          tlsCAFile=certifi.where()
     )
-    db = client["AhorraTip"]  # Reemplaza por tu nombre de base
-    return db["usuarios"]     # Colección de usuarios
+    db = client["AhorraTip"]  # Reemplazamos por el nombre de la base de datos
+    return db["usuarios"]     # La coleccion de usuarios
 
 class LoginApp:
     def __init__(self, page: ft.Page):
