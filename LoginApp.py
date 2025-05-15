@@ -24,7 +24,7 @@ class LoginApp:
             password=True,
             width=300,
             suffix=ft.IconButton(
-                icon=ft.icons.VISIBILITY_OFF,
+                icon=ft.Icons.VISIBILITY_OFF,
                 on_click=self.toggle_password,
             ),
         )
@@ -111,7 +111,7 @@ class LoginApp:
         self.show_password = not self.show_password
         self.password.password = not self.show_password
         self.password.suffix.icon = (
-            ft.icons.VISIBILITY if self.show_password else ft.icons.VISIBILITY_OFF
+            ft.Icons.VISIBILITY if self.show_password else ft.Icons.VISIBILITY_OFF
         )
         self.page.update()
 
@@ -132,7 +132,7 @@ class LoginApp:
             alignment=ft.MainAxisAlignment.CENTER,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER),
             alignment=ft.alignment.center,
-            bgcolor=ft.colors.with_opacity(0.6, ft.colors.BLACK),
+            bgcolor=ft.Colors.with_opacity(0.6, ft.Colors.BLACK),
             width=self.page.width,
             height=self.page.height
         )
