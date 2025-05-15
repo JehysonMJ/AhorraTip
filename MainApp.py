@@ -34,7 +34,6 @@ def mostrar_grafico_y_lista():
     plt.subplots_adjust(left=0.01, right=0.99, top=0.99, bottom=0.01)
     wedges, texts, autotexts = ax.pie(
         list(resumen.values()),
-        labels=None,
         autopct='%1.1f%%',
         startangle=90,
         pctdistance=0.6
@@ -102,12 +101,22 @@ class MainApp:
 
         date_range = ft.Text("28 abr – 4 may", size=16, weight="bold")
 
+        # Gráfico
         self.chart_container = ft.Container(
             content=mostrar_grafico_y_lista(),
             alignment=ft.alignment.center,
             width=320, height=320, bgcolor="#cfd8dc", border_radius=160
         )
 
+        # Texto total gastado
+        resumen_inicial = self.obtener_resumen()
+        total_spent = sum(resumen_inicial.values())
+        self.total_spent_text = ft.Text(
+            f"Total gastado: ${total_spent:,.2f}",
+            color="white", weight="bold", size=16, text_align="center"
+        )
+
+        # Resumen por categoría
         self.summary_container = ft.Column(spacing=6)
         self.update_resumen()
 
@@ -119,6 +128,8 @@ class MainApp:
                 ft.Row([date_range], alignment=ft.MainAxisAlignment.CENTER),
                 ft.Container(height=20),
                 ft.Row([self.chart_container], alignment=ft.MainAxisAlignment.CENTER),
+                # Centrado del texto total gastado
+                ft.Row([self.total_spent_text], alignment=ft.MainAxisAlignment.CENTER),
                 ft.Container(height=15),
                 ft.Text("Resumen por categoría:", color="white", weight="bold"),
                 self.summary_container
@@ -127,14 +138,11 @@ class MainApp:
             shadow=ft.BoxShadow(blur_radius=10, spread_radius=1, color="black")
         )
 
-        # Reemplazamos Column por ListView para scroll
+        # Contenedor desplazable
         self.page.controls.clear()
         self.page.add(
             ft.ListView(
-                expand=1,
-                spacing=20,
-                padding=20,
-                auto_scroll=True,
+                expand=1, spacing=20, padding=20, auto_scroll=True,
                 controls=[saludo, header, card]
             )
         )
@@ -152,8 +160,9 @@ class MainApp:
         return resumen
 
     def update_resumen(self):
+        resumen = self.obtener_resumen()
         controles = []
-        for cat, monto in self.obtener_resumen().items():
+        for cat, monto in resumen.items():
             controles.append(
                 ft.Row([
                     ft.Text(cat, color="white"),
@@ -185,6 +194,10 @@ class MainApp:
         AddTransactionApp(self.page)
 
     def actualizar_grafico(self):
+        # Actualizar gráfico y resumen
         self.chart_container.content = mostrar_grafico_y_lista()
         self.update_resumen()
+        # Actualizar texto total gastado
+        total_spent = sum(self.obtener_resumen().values())
+        self.total_spent_text.value = f"Total Gastado: ${total_spent:,.2f}"
         self.page.update()
