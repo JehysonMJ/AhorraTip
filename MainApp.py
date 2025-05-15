@@ -1,4 +1,5 @@
 import flet as ft
+from flet import ScrollMode
 from datetime import datetime, timedelta
 from LoginApp import conectar_mongo
 from Sesion import usuario_actual
@@ -19,7 +20,6 @@ def obtener_gastos_semana_actual():
         "fecha": {"$gte": inicio_semana, "$lte": fin_semana}
     }))
 
-
 def mostrar_grafico_y_lista():
     gastos = obtener_gastos_semana_actual()
     if not gastos:
@@ -30,14 +30,11 @@ def mostrar_grafico_y_lista():
         cat = g.get("categoria", "Sin categoría")
         resumen[cat] = resumen.get(cat, 0) + g.get("monto", 0)
 
-    labels = list(resumen.keys())
-    sizes = list(resumen.values())
-
     fig, ax = plt.subplots(figsize=(4, 4), dpi=100)
     plt.subplots_adjust(left=0.01, right=0.99, top=0.99, bottom=0.01)
-
     wedges, texts, autotexts = ax.pie(
-        sizes,
+        list(resumen.values()),
+        labels=None,
         autopct='%1.1f%%',
         startangle=90,
         pctdistance=0.6
@@ -45,8 +42,7 @@ def mostrar_grafico_y_lista():
     for t in autotexts:
         t.set_color('white')
         t.set_fontsize(10)
-
-    ax.axis('equal')  
+    ax.axis('equal')
 
     buf = io.BytesIO()
     fig.savefig(buf, format='png', bbox_inches='tight', transparent=True)
@@ -54,64 +50,43 @@ def mostrar_grafico_y_lista():
     buf.seek(0)
     img_b64 = base64.b64encode(buf.read()).decode('utf-8')
 
-    return ft.Image(
-        src_base64=img_b64,
-        width=320,
-        height=320,
-        fit=ft.ImageFit.CONTAIN
-    )
-
+    return ft.Image(src_base64=img_b64, width=320, height=320, fit=ft.ImageFit.CONTAIN)
 
 class MainApp:
     def __init__(self, page: ft.Page):
+        # Habilitamos scroll vertical
+        page.vertical_scroll = ScrollMode.AUTO
         self.page = page
         self.build()
 
     def build(self):
         saludo = ft.Text(
             f"¡Bienvenido, {usuario_actual}!",
-            size=20,
-            weight="bold",
-            color="white",
-            text_align="center"
+            size=20, weight="bold", color="white", text_align="center"
         )
 
         self.total_input = ft.TextField(
-            value="0",
-            text_align=ft.TextAlign.CENTER,
-            width=120,
-            height=40,
-            border_radius=10,
-            border_color="transparent",
-            bgcolor="#FFFFFF",
-            color="#000000",
-            suffix_text="$",
+            value="0", text_align=ft.TextAlign.CENTER,
+            width=120, height=40, border_radius=10,
+            border_color="transparent", bgcolor="#FFFFFF",
+            color="#000000", suffix_text="$",
             on_change=self.total_updated
         )
 
         header = ft.Container(
             bgcolor="#2e7d32",
             padding=ft.padding.symmetric(horizontal=15, vertical=12),
-            content=ft.Row(
-                [
-                    ft.IconButton(icon=ft.Icons.MENU, icon_color="white", on_click=lambda e: print("Menu")),
-                    ft.Column(
-                        [
-                            ft.Row([
-                                ft.Icon(name=ft.Icons.SAVINGS, color="white", size=20),
-                                ft.Text("Total", color="white", size=16),
-                            ], alignment=ft.MainAxisAlignment.CENTER),
-                            ft.Row([self.total_input], alignment=ft.MainAxisAlignment.CENTER)
-                        ],
-                        expand=True,
-                        alignment=ft.MainAxisAlignment.CENTER,
-                        horizontal_alignment=ft.CrossAxisAlignment.CENTER
-                    ),
-                    ft.IconButton(icon=ft.Icons.RECEIPT_LONG, icon_color="white", on_click=lambda e: print("Historial")),
-                ],
-                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                vertical_alignment=ft.CrossAxisAlignment.CENTER
-            )
+            content=ft.Row([
+                ft.IconButton(icon=ft.Icons.MENU, icon_color="white", on_click=lambda e: print("Menu")),
+                ft.Column([
+                    ft.Row([
+                        ft.Icon(name=ft.Icons.SAVINGS, color="white", size=20),
+                        ft.Text("Total", color="white", size=16),
+                    ], alignment=ft.MainAxisAlignment.CENTER),
+                    ft.Row([self.total_input], alignment=ft.MainAxisAlignment.CENTER)
+                ], expand=True, alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                ft.IconButton(icon=ft.Icons.RECEIPT_LONG, icon_color="white", on_click=lambda e: print("Historial")),
+            ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN, vertical_alignment=ft.CrossAxisAlignment.CENTER)
         )
 
         self.active_tab = "GASTOS"
@@ -122,7 +97,7 @@ class MainApp:
             ft.TextButton("Día", on_click=self.change_period),
             ft.TextButton("Semana", on_click=self.change_period),
             ft.TextButton("Mes", on_click=self.change_period),
-            ft.TextButton("Año", on_click=self.change_period)
+            ft.TextButton("Año", on_click=self.change_period),
         ], alignment=ft.MainAxisAlignment.CENTER)
 
         date_range = ft.Text("28 abr – 4 may", size=16, weight="bold")
@@ -130,49 +105,42 @@ class MainApp:
         self.chart_container = ft.Container(
             content=mostrar_grafico_y_lista(),
             alignment=ft.alignment.center,
-            width=320,
-            height=320,
-            bgcolor="#cfd8dc",
-            border_radius=160
+            width=320, height=320, bgcolor="#cfd8dc", border_radius=160
         )
 
         self.summary_container = ft.Column(spacing=6)
         self.update_resumen()
 
         card = ft.Container(
-            content=ft.Column(
-                [
-                    ft.Row([self.tab_gastos, self.tab_ingresos], alignment=ft.MainAxisAlignment.CENTER),
-                    period_selector,
-                    ft.Container(height=5),
-                    ft.Row([date_range], alignment=ft.MainAxisAlignment.CENTER),
-                    ft.Container(height=20),
-                    ft.Row([self.chart_container], alignment=ft.MainAxisAlignment.CENTER),
-                    ft.Container(height=15),
-                    ft.Text("Resumen por categoría:", color="white", weight="bold"),
-                    self.summary_container
-                ],
-                spacing=10
-            ),
-            padding=20,
-            bgcolor="#1e1e1e",
-            border_radius=20,
+            content=ft.Column([
+                ft.Row([self.tab_gastos, self.tab_ingresos], alignment=ft.MainAxisAlignment.CENTER),
+                period_selector,
+                ft.Container(height=5),
+                ft.Row([date_range], alignment=ft.MainAxisAlignment.CENTER),
+                ft.Container(height=20),
+                ft.Row([self.chart_container], alignment=ft.MainAxisAlignment.CENTER),
+                ft.Container(height=15),
+                ft.Text("Resumen por categoría:", color="white", weight="bold"),
+                self.summary_container
+            ], spacing=10),
+            padding=20, bgcolor="#1e1e1e", border_radius=20,
             shadow=ft.BoxShadow(blur_radius=10, spread_radius=1, color="black")
         )
 
+        # Reemplazamos Column por ListView para scroll
         self.page.controls.clear()
         self.page.add(
-            ft.Column(
-                [saludo, header, ft.Container(height=20), card],
-                alignment=ft.MainAxisAlignment.START,
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER
+            ft.ListView(
+                expand=1,
+                spacing=20,
+                padding=20,
+                auto_scroll=True,
+                controls=[saludo, header, card]
             )
         )
 
         self.page.floating_action_button = ft.FloatingActionButton(
-            icon=ft.Icons.ADD,
-            bgcolor="#FFEB3B",
-            on_click=self.add_transaction
+            icon=ft.Icons.ADD, bgcolor="#FFEB3B", on_click=self.add_transaction
         )
         self.page.update()
 
@@ -184,9 +152,8 @@ class MainApp:
         return resumen
 
     def update_resumen(self):
-        resumen = self.obtener_resumen()
         controles = []
-        for cat, monto in resumen.items():
+        for cat, monto in self.obtener_resumen().items():
             controles.append(
                 ft.Row([
                     ft.Text(cat, color="white"),
@@ -207,8 +174,7 @@ class MainApp:
     def total_updated(self, e):
         self.page.snack_bar = ft.SnackBar(
             content=ft.Text(f"Monto actualizado: ${self.total_input.value}"),
-            bgcolor="#43A047",
-            duration=1500
+            bgcolor="#43A047", duration=1500
         )
         self.page.snack_bar.open = True
         self.page.update()
