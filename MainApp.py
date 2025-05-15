@@ -7,70 +7,60 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import io, base64
 
-
 def obtener_gastos_semana_actual():
     db = conectar_mongo()
     coleccion = db["gastos"]
     hoy = datetime.now()
     inicio_semana = hoy - timedelta(days=hoy.weekday())
     fin_semana = inicio_semana + timedelta(days=6)
-    gastos = list(coleccion.find({
+    return list(coleccion.find({
         "usuario": {"$regex": f"^{usuario_actual.strip()}$", "$options": "i"},
         "tipo": "GASTOS",
         "fecha": {"$gte": inicio_semana, "$lte": fin_semana}
     }))
-    return gastos
 
 
 def mostrar_grafico_y_lista():
     gastos = obtener_gastos_semana_actual()
     if not gastos:
-        return ft.Text(
-            "No hubo gastos esta semana", size=16, text_align="center"
-        )
+        return ft.Text("No hubo gastos esta semana", size=16, text_align="center")
 
-    # Agrupar por categoría
     resumen = {}
     for g in gastos:
         cat = g.get("categoria", "Sin categoría")
         resumen[cat] = resumen.get(cat, 0) + g.get("monto", 0)
 
-    # Preparar datos para el gráfico
     labels = list(resumen.keys())
     sizes = list(resumen.values())
 
-    # Crear figura y reducir márgenes
     fig, ax = plt.subplots(figsize=(4, 4), dpi=100)
     plt.subplots_adjust(left=0.01, right=0.99, top=0.99, bottom=0.01)
 
-    # Generar pastel sin etiquetas, solo porcentajes
     wedges, texts, autotexts = ax.pie(
         sizes,
         autopct='%1.1f%%',
         startangle=90,
         pctdistance=0.6
     )
-    # Ajustar estilo de porcentaje
     for t in autotexts:
         t.set_color('white')
         t.set_fontsize(10)
 
-    ax.axis('equal')  # Mantener proporción circular
+    ax.axis('equal')  
 
-    # Guardar gráfico en memoria
     buf = io.BytesIO()
     fig.savefig(buf, format='png', bbox_inches='tight', transparent=True)
     plt.close(fig)
     buf.seek(0)
     img_b64 = base64.b64encode(buf.read()).decode('utf-8')
 
-    # Devolver como imagen en Flet
     return ft.Image(
         src_base64=img_b64,
         width=320,
         height=320,
         fit=ft.ImageFit.CONTAIN
     )
+
 
 class MainApp:
     def __init__(self, page: ft.Page):
@@ -102,17 +92,26 @@ class MainApp:
         header = ft.Container(
             bgcolor="#2e7d32",
             padding=ft.padding.symmetric(horizontal=15, vertical=12),
-            content=ft.Row([
-                ft.IconButton(icon=ft.Icons.MENU, icon_color="white", on_click=lambda e: print("Menu")),
-                ft.Column([
-                    ft.Row([
-                        ft.Icon(name=ft.Icons.SAVINGS, color="white", size=20),
-                        ft.Text("Total", color="white", size=16)
-                    ], alignment=ft.MainAxisAlignment.CENTER),
-                    self.total_input
-                ], alignment=ft.MainAxisAlignment.CENTER),
-                ft.IconButton(icon=ft.Icons.RECEIPT_LONG, icon_color="white", on_click=lambda e: print("Historial"))
-            ])
+            content=ft.Row(
+                [
+                    ft.IconButton(icon=ft.Icons.MENU, icon_color="white", on_click=lambda e: print("Menu")),
+                    ft.Column(
+                        [
+                            ft.Row([
+                                ft.Icon(name=ft.Icons.SAVINGS, color="white", size=20),
+                                ft.Text("Total", color="white", size=16),
+                            ], alignment=ft.MainAxisAlignment.CENTER),
+                            ft.Row([self.total_input], alignment=ft.MainAxisAlignment.CENTER)
+                        ],
+                        expand=True,
+                        alignment=ft.MainAxisAlignment.CENTER,
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER
+                    ),
+                    ft.IconButton(icon=ft.Icons.RECEIPT_LONG, icon_color="white", on_click=lambda e: print("Historial")),
+                ],
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER
+            )
         )
 
         self.active_tab = "GASTOS"
@@ -137,15 +136,24 @@ class MainApp:
             border_radius=160
         )
 
+        self.summary_container = ft.Column(spacing=6)
+        self.update_resumen()
+
         card = ft.Container(
-            content=ft.Column([
-                ft.Row([self.tab_gastos, self.tab_ingresos], alignment=ft.MainAxisAlignment.CENTER),
-                period_selector,
-                ft.Container(height=5),
-                date_range,
-                ft.Container(height=20),
-                self.chart_container
-            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=10),
+            content=ft.Column(
+                [
+                    ft.Row([self.tab_gastos, self.tab_ingresos], alignment=ft.MainAxisAlignment.CENTER),
+                    period_selector,
+                    ft.Container(height=5),
+                    ft.Row([date_range], alignment=ft.MainAxisAlignment.CENTER),
+                    ft.Container(height=20),
+                    ft.Row([self.chart_container], alignment=ft.MainAxisAlignment.CENTER),
+                    ft.Container(height=15),
+                    ft.Text("Resumen por categoría:", color="white", weight="bold"),
+                    self.summary_container
+                ],
+                spacing=10
+            ),
             padding=20,
             bgcolor="#1e1e1e",
             border_radius=20,
@@ -154,12 +162,11 @@ class MainApp:
 
         self.page.controls.clear()
         self.page.add(
-            ft.Column([
-                saludo,
-                header,
-                ft.Container(height=20),
-                card
-            ], alignment=ft.MainAxisAlignment.START, horizontal_alignment=ft.CrossAxisAlignment.CENTER)
+            ft.Column(
+                [saludo, header, ft.Container(height=20), card],
+                alignment=ft.MainAxisAlignment.START,
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER
+            )
         )
 
         self.page.floating_action_button = ft.FloatingActionButton(
@@ -168,6 +175,27 @@ class MainApp:
             on_click=self.add_transaction
         )
         self.page.update()
+
+    def obtener_resumen(self):
+        resumen = {}
+        for g in obtener_gastos_semana_actual():
+            cat = g.get("categoria", "Sin categoría")
+            resumen[cat] = resumen.get(cat, 0) + g.get("monto", 0)
+        return resumen
+
+    def update_resumen(self):
+        resumen = self.obtener_resumen()
+        controles = []
+        for cat, monto in resumen.items():
+            controles.append(
+                ft.Row([
+                    ft.Text(cat, color="white"),
+                    ft.Text(f"${monto:,.2f}", color="white")
+                ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
+            )
+        if not controles:
+            controles = [ft.Text("No hay datos para mostrar.", color="white")]
+        self.summary_container.controls = controles
 
     def set_tab(self, e):
         self.active_tab = e.control.data
@@ -192,4 +220,5 @@ class MainApp:
 
     def actualizar_grafico(self):
         self.chart_container.content = mostrar_grafico_y_lista()
+        self.update_resumen()
         self.page.update()
