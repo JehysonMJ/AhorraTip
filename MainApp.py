@@ -8,6 +8,9 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import io, base64
 
+# Colores por defecto de Matplotlib para usar en el pie y leyenda
+DEFAULT_COLORS = plt.rcParams['axes.prop_cycle'].by_key()['color']
+
 def obtener_gastos_semana_actual():
     db = conectar_mongo()
     coleccion = db["gastos"]
@@ -25,29 +28,38 @@ def mostrar_grafico_y_lista():
     if not gastos:
         return ft.Text("No hubo gastos esta semana", size=16, text_align="center")
 
+    # Preparar datos
     resumen = {}
     for g in gastos:
         cat = g.get("categoria", "Sin categoría")
         resumen[cat] = resumen.get(cat, 0) + g.get("monto", 0)
+    labels = list(resumen.keys())
+    sizes = list(resumen.values())
+    colors = DEFAULT_COLORS[:len(labels)]
 
+    # Dibujar gráfico circular
     fig, ax = plt.subplots(figsize=(4, 4), dpi=100)
     plt.subplots_adjust(left=0.01, right=0.99, top=0.99, bottom=0.01)
     wedges, texts, autotexts = ax.pie(
-        list(resumen.values()),
+        sizes,
+        labels=None,
         autopct='%1.1f%%',
         startangle=90,
-        pctdistance=0.6
+        pctdistance=0.6,
+        colors=colors
     )
     for t in autotexts:
         t.set_color('white')
         t.set_fontsize(10)
     ax.axis('equal')
 
+    # Convertir figura a imagen base64
     buf = io.BytesIO()
     fig.savefig(buf, format='png', bbox_inches='tight', transparent=True)
     plt.close(fig)
     buf.seek(0)
     img_b64 = base64.b64encode(buf.read()).decode('utf-8')
+    buf.close()
 
     return ft.Image(src_base64=img_b64, width=320, height=320, fit=ft.ImageFit.CONTAIN)
 
@@ -101,7 +113,7 @@ class MainApp:
 
         date_range = ft.Text("28 abr – 4 may", size=16, weight="bold")
 
-        # Gráfico
+        # Contenedor del gráfico
         self.chart_container = ft.Container(
             content=mostrar_grafico_y_lista(),
             alignment=ft.alignment.center,
@@ -128,7 +140,6 @@ class MainApp:
                 ft.Row([date_range], alignment=ft.MainAxisAlignment.CENTER),
                 ft.Container(height=20),
                 ft.Row([self.chart_container], alignment=ft.MainAxisAlignment.CENTER),
-                # Centrado del texto total gastado
                 ft.Row([self.total_spent_text], alignment=ft.MainAxisAlignment.CENTER),
                 ft.Container(height=15),
                 ft.Text("Resumen por categoría:", color="white", weight="bold"),
@@ -138,7 +149,6 @@ class MainApp:
             shadow=ft.BoxShadow(blur_radius=10, spread_radius=1, color="black")
         )
 
-        # Contenedor desplazable
         self.page.controls.clear()
         self.page.add(
             ft.ListView(
@@ -162,12 +172,19 @@ class MainApp:
     def update_resumen(self):
         resumen = self.obtener_resumen()
         controles = []
-        for cat, monto in resumen.items():
+        for i, (cat, monto) in enumerate(resumen.items()):
+            color = DEFAULT_COLORS[i % len(DEFAULT_COLORS)]
             controles.append(
                 ft.Row([
-                    ft.Text(cat, color="white"),
+                    ft.Container(
+                        width=12, height=12,
+                        bgcolor=color,
+                        border_radius=3,
+                        margin=ft.margin.only(right=8)   # <- CORRECCIÓN AQUÍ
+                    ),
+                    ft.Text(cat, color="white", expand=True),
                     ft.Text(f"${monto:,.2f}", color="white")
-                ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
+                ])
             )
         if not controles:
             controles = [ft.Text("No hay datos para mostrar.", color="white")]
@@ -194,10 +211,8 @@ class MainApp:
         AddTransactionApp(self.page)
 
     def actualizar_grafico(self):
-        # Actualizar gráfico y resumen
         self.chart_container.content = mostrar_grafico_y_lista()
         self.update_resumen()
-        # Actualizar texto total gastado
         total_spent = sum(self.obtener_resumen().values())
         self.total_spent_text.value = f"Total Gastado: ${total_spent:,.2f}"
         self.page.update()
