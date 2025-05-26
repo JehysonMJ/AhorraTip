@@ -1,16 +1,20 @@
-# Importación de módulos necesarios
 import flet as ft  # Flet para crear la interfaz gráfica
 import datetime  # Para obtener la fecha actual
 import time  # Para simular una pausa después de registrar
 from Sesion import usuario_actual
+import Sesion  # Para manejar saldo_global
 from pymongo import MongoClient
 import certifi
 
+
 def conectar_mongo():
-    client = MongoClient("mongodb+srv://jmj252004:3lBz9QwY7Uc0If2T@ahorratip.jvgcrrh.mongodb.net/?retryWrites=true&w=majority",
-                         tlsCAFile=certifi.where())
+    client = MongoClient(
+        "mongodb+srv://jmj252004:3lBz9QwY7Uc0If2T@ahorratip.jvgcrrh.mongodb.net/?retryWrites=true&w=majority",
+        tlsCAFile=certifi.where()
+    )
     db = client["AhorraTip"]
     return db
+
 
 # Clase principal para añadir una transacción
 class AddTransactionApp:
@@ -24,12 +28,11 @@ class AddTransactionApp:
     def build(self):
         # Campo de texto para ingresar el monto
         self.amount_field = ft.TextField(
-            hint_text="0",  # Texto guía
+            hint_text="0",
             text_align=ft.TextAlign.CENTER,
-            width=200,
-            height=60,
-            text_style=ft.TextStyle(size=28, weight="bold"),  # Estilo grande y negrita
-            suffix_text="MXN"  # Moneda al final
+            width=200, height=60,
+            text_style=ft.TextStyle(size=28, weight="bold"),
+            suffix_text="MXN"
         )
 
         # Fila de pestañas para cambiar entre GASTOS e INGRESOS
@@ -101,20 +104,20 @@ class AddTransactionApp:
         self.page.floating_action_button = None  # Oculta el botón flotante
         self.page.add(
             ft.Column([
-                ft.Text("Añadir Transacción", size=28, weight="bold"),  # Título
-                tabs,  # Pestañas
-                self.amount_field,  # Monto
-                ft.Text("Categorías:", size=16, weight="bold"),  # Etiqueta
-                categories,  # Categorías dinámicas
-                self.date_text,  # Fecha
-                self.comment_field,  # Comentario
-                add_button,  # Botón para guardar
-                back_button  # Botón para volver
+                ft.Text("Añadir Transacción", size=28, weight="bold"),
+                tabs,
+                self.amount_field,
+                ft.Text("Categorías:", size=16, weight="bold"),
+                categories,
+                self.date_text,
+                self.comment_field,
+                add_button,
+                back_button
             ],
                 alignment=ft.MainAxisAlignment.START,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 spacing=20,
-                scroll=ft.ScrollMode.AUTO  # Activa scroll automático
+                scroll=ft.ScrollMode.AUTO
             )
         )
         self.page.update()
@@ -156,18 +159,17 @@ class AddTransactionApp:
                 ], alignment=ft.MainAxisAlignment.CENTER, spacing=20),
             ], spacing=20)
 
-    # Método que crea cada categoría con ícono y color
     def category_chip(self, emoji, name, color):
-        selected = (self.selected_category == name)  # Verifica si está seleccionada
+        selected = (self.selected_category == name)
         return ft.GestureDetector(
-            on_tap=lambda e: self.select_category(name),  # Al hacer clic, se selecciona
+            on_tap=lambda e: self.select_category(name),
             content=ft.Container(
                 content=ft.Column([
                     ft.Container(
-                        content=ft.Text(emoji, size=22),  # Ícono de la categoría
+                        content=ft.Text(emoji, size=22),
                         width=60,
                         height=60,
-                        bgcolor=color if not selected else "#000000",  # Si está seleccionada, se oscurece
+                        bgcolor=color if not selected else "#000000",
                         border_radius=30,
                         alignment=ft.alignment.center
                     ),
@@ -179,15 +181,13 @@ class AddTransactionApp:
             )
         )
 
-    # Método para seleccionar categoría o redirigir si se elige "Más"
     def select_category(self, name):
         if name == "Más":
-            from NuevaCategoria import NuevaCategoria  # Redirige a crear nueva categoría
+            from NuevaCategoria import NuevaCategoria
             self.page.controls.clear()
             NuevaCategoria(self.page)
             return
 
-        # Guarda el valor actual y reconstruye manteniéndolo
         current_amount = self.amount_field.value
         current_comment = self.comment_field.value
         self.selected_category = name
@@ -196,12 +196,10 @@ class AddTransactionApp:
         self.comment_field.value = current_comment
         self.page.update()
 
-    # Cambia el tipo de transacción (GASTOS o INGRESOS)
     def change_tab(self, tab_name):
         self.transaction_type = tab_name
-        self.build()  # Reconstruye todo con la nueva pestaña activa
+        self.build()
 
-    # Método para validar y registrar la transacción
     def add_transaction(self, e):
         monto = self.amount_field.value.strip()
         comentario = self.comment_field.value.strip()
@@ -218,19 +216,28 @@ class AddTransactionApp:
             self.page.update()
             return
 
-        # 🟢 Crear documento para guardar en MongoDB
-        from datetime import datetime
-        from LoginApp import conectar_mongo
+        monto_valor = float(monto)
+        if self.transaction_type == "GASTOS":
+            if monto_valor > Sesion.saldo_global:
+                self.page.snack_bar = ft.SnackBar(
+                    content=ft.Text("Saldo insuficiente. No se puede realizar el gasto."),
+                    bgcolor="red"
+                )
+                self.page.snack_bar.open = True
+                self.page.update()
+                return
+            Sesion.saldo_global -= monto_valor
+        else:
+            Sesion.saldo_global += monto_valor
 
+        from datetime import datetime
         db = conectar_mongo()
         gastos_col = db["gastos"]
 
         gasto = {
-            "usuario": usuario_actual.strip(),  # Aquí podrías usar el usuario activo
+            "usuario": usuario_actual.strip(),
             "categoria": self.selected_category,
-            "emoji": "",  # Si manejas emoji, puedes añadirlo
-            "color": "",  # Lo mismo con color
-            "monto": float(monto),
+            "monto": monto_valor,
             "comentario": comentario,
             "fecha": datetime.now(),
             "tipo": self.transaction_type

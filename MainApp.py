@@ -3,6 +3,7 @@ from flet import ScrollMode
 from datetime import datetime, timedelta
 from LoginApp import conectar_mongo
 from Sesion import usuario_actual
+import Sesion  # Importamos el módulo para saldo dinámico
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -76,8 +77,10 @@ class MainApp:
             size=20, weight="bold", color="white", text_align="center"
         )
 
+        # Mostramos el saldo actual en el header
         self.total_input = ft.TextField(
-            value="0", text_align=ft.TextAlign.CENTER,
+            value=f"{Sesion.saldo_global:.2f}",  # Valor inicial del saldo
+            text_align=ft.TextAlign.CENTER,
             width=120, height=40, border_radius=10,
             border_color="transparent", bgcolor="#FFFFFF",
             color="#000000", suffix_text="$",
@@ -180,7 +183,7 @@ class MainApp:
                         width=12, height=12,
                         bgcolor=color,
                         border_radius=3,
-                        margin=ft.margin.only(right=8)   # <- CORRECCIÓN AQUÍ
+                        margin=ft.margin.only(right=8)
                     ),
                     ft.Text(cat, color="white", expand=True),
                     ft.Text(f"${monto:,.2f}", color="white")
@@ -213,6 +216,9 @@ class MainApp:
     def actualizar_grafico(self):
         self.chart_container.content = mostrar_grafico_y_lista()
         self.update_resumen()
+        # Actualizamos también el saldo mostrado en el header
+        self.total_input.value = f"{Sesion.saldo_global:.2f}"
+        # Total gastado
         total_spent = sum(self.obtener_resumen().values())
         self.total_spent_text.value = f"Total Gastado: ${total_spent:,.2f}"
         self.page.update()
