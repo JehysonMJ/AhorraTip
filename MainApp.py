@@ -18,6 +18,7 @@ def obtener_gastos_semana_actual():
     hoy = datetime.now()
     inicio_semana = hoy - timedelta(days=hoy.weekday())
     fin_semana = inicio_semana + timedelta(days=6)
+    print("Consultando gastos de:", usuario_actual)
     return list(coleccion.find({
         "usuario": {"$regex": f"^{usuario_actual.strip()}$", "$options": "i"},
         "tipo": "GASTOS",

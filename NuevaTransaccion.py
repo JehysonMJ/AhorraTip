@@ -242,7 +242,8 @@ class AddTransactionApp:
             "fecha": datetime.now(),
             "tipo": self.transaction_type
         }
-
+        
+        print("Guardando gasto para:", usuario_actual)
         gastos_col.insert_one(gasto)
 
         self.page.snack_bar = ft.SnackBar(content=ft.Text("Transacción añadida correctamente ✅"), bgcolor="#c6ff00")

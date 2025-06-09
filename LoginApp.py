@@ -8,8 +8,7 @@ def conectar_mongo():
     client = MongoClient("mongodb+srv://jmj252004:3lBz9QwY7Uc0If2T@ahorratip.jvgcrrh.mongodb.net/?retryWrites=true&w=majority",
                          tlsCAFile=certifi.where()
     )
-    db = client["AhorraTip"]  # Reemplazamos por el nombre de la base de datos MongoDB
-    return db["usuarios"]     # La coleccion de usuarios
+    return client["AhorraTip"]
 
 class LoginApp:
     def __init__(self, page: ft.Page):
@@ -120,6 +119,8 @@ class LoginApp:
         from Sesion import usuario_actual  # Importa nuestra variable global
 
         coleccion = conectar_mongo()
+        db = conectar_mongo()
+        coleccion = db["usuarios"]
         usuario = self.username.value.strip()
         contrasena = self.password.value.strip()
 
