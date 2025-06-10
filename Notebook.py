@@ -10,7 +10,7 @@ def conectar_mongo():
     db = client["AhorraTip"]
     return db["gastos"]
 
-# Usuario actual (de la sesión)
+# Usuario actual
 usuario_actual = "JehysonMJ"
 
 # Obtener colección
@@ -35,5 +35,5 @@ df_categoria = df.groupby("categoria")["monto"].sum()
 plt.figure(figsize=(6, 6))
 plt.pie(df_categoria, labels=df_categoria.index, autopct="%1.1f%%", startangle=90)
 plt.title(f"Gastos por Categoría - {usuario_actual}")
-plt.axis("equal")  # Para que sea perfectamente circular
+plt.axis("equal") 
 plt.show()
