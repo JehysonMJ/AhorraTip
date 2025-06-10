@@ -15,7 +15,6 @@ def conectar_mongo():
     db = client["AhorraTip"]
     return db
 
-
 # Clase principal para añadir una transacción
 class AddTransactionApp:
     def __init__(self, page: ft.Page, main_app):
@@ -186,7 +185,7 @@ class AddTransactionApp:
         if name == "Más":
             from NuevaCategoria import NuevaCategoria
             self.page.controls.clear()
-            NuevaCategoria(self.page)
+            NuevaCategoria(self.page, self.main_app)
             return
 
         current_amount = self.amount_field.value

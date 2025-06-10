@@ -4,8 +4,9 @@ from NuevaTransaccion import AddTransactionApp  # Importa la pantalla para añad
 
 # Clase que representa la pantalla para elegir una nueva categoría
 class NuevaCategoria:
-    def __init__(self, page: ft.Page):
+    def __init__(self, page: ft.Page, main_app):
         self.page = page  # Guarda la referencia a la página
+        self.main_app = main_app
         self.build()  # Llama al método que construye la interfaz
 
     # Método que construye toda la pantalla de selección de categorías
@@ -77,7 +78,7 @@ class NuevaCategoria:
     # Método que regresa a la pantalla de transacciones con la categoría seleccionada
     def return_to_transaction(self, categoria_seleccionada):
         self.page.controls.clear()  # Limpia la pantalla
-        app = AddTransactionApp(self.page)  # Crea instancia de la pantalla de transacción
+        app = AddTransactionApp(self.page, self.main_app)  # Crea instancia de la pantalla de transacción
         app.selected_category = categoria_seleccionada  # Asigna la categoría seleccionada
         app.amount_field.value = ""  # Limpia el campo de monto
         app.comment_field.value = ""  # Limpia el campo de comentario
@@ -87,4 +88,4 @@ class NuevaCategoria:
     def go_back(self, e):
         from NuevaTransaccion import AddTransactionApp  # Reimporta por si se llama externamente
         self.page.controls.clear()  # Limpia la pantalla
-        AddTransactionApp(self.page)  # Vuelve a la pantalla de transacción
+        AddTransactionApp(self.page, self.main_app)  # Vuelve a la pantalla de transacción
