@@ -6,7 +6,7 @@ import Sesion  # Para manejar saldo_global
 from pymongo import MongoClient
 import certifi
 
-
+# Conexión a la base de datos MongoDB Atlas
 def conectar_mongo():
     client = MongoClient(
         "mongodb+srv://jmj252004:3lBz9QwY7Uc0If2T@ahorratip.jvgcrrh.mongodb.net/?retryWrites=true&w=majority",
@@ -37,6 +37,7 @@ class AddTransactionApp:
 
         # Fila de pestañas para cambiar entre GASTOS e INGRESOS
         tabs = ft.Row([
+            # Botón GASTOS
             ft.Container(
                 content=ft.TextButton(
                     "GASTOS",
@@ -52,6 +53,7 @@ class AddTransactionApp:
                 expand=1,
                 alignment=ft.alignment.center_left,
             ),
+            # Botón INGRESOS
             ft.Container(
                 content=ft.TextButton(
                     "INGRESOS",
@@ -144,7 +146,7 @@ class AddTransactionApp:
                     self.category_chip("➕", "Más", "#90a4ae"),
                 ], alignment=ft.MainAxisAlignment.CENTER, spacing=20),
             ], spacing=20)
-        else:
+        else:      # Categorías para INGRESOS
             return ft.Column([
                 ft.Row([
                     self.category_chip("🪙", "Salario", "#1e88e5"),
@@ -158,7 +160,8 @@ class AddTransactionApp:
                     self.category_chip("🎫", "Aguinaldo", "#f06292"),
                 ], alignment=ft.MainAxisAlignment.CENTER, spacing=20),
             ], spacing=20)
-
+        
+    # Crea un chip visual para cada categoría
     def category_chip(self, emoji, name, color):
         selected = (self.selected_category == name)
         return ft.GestureDetector(
@@ -181,6 +184,7 @@ class AddTransactionApp:
             )
         )
 
+    # Cambia la categoría seleccionada y reconstruye la interfaz
     def select_category(self, name):
         if name == "Más":
             from NuevaCategoria import NuevaCategoria
@@ -188,6 +192,7 @@ class AddTransactionApp:
             NuevaCategoria(self.page, self.main_app)
             return
 
+        # Conserva el monto y comentario al cambiar de categoría
         current_amount = self.amount_field.value
         current_comment = self.comment_field.value
         self.selected_category = name
@@ -196,21 +201,24 @@ class AddTransactionApp:
         self.comment_field.value = current_comment
         self.page.update()
 
+     # Cambia entre la pestaña de gastos e ingresos
     def change_tab(self, tab_name):
         self.transaction_type = tab_name
         self.build()
 
+    # Añade la transacción a la base de datos
     def add_transaction(self, e):
         monto = self.amount_field.value.strip()
         comentario = self.comment_field.value.strip()
 
-        # Validaciones de monto y categoría
+        # Validaciones de monto
         if not monto or not monto.replace(".", "", 1).isdigit() or float(monto) <= 0:
             self.page.snack_bar = ft.SnackBar(content=ft.Text("Ingresa un monto válido."), bgcolor="red")
             self.page.snack_bar.open = True
             self.page.update()
             return
 
+        # Validación de categoría seleccionada
         if not self.selected_category:
             self.page.snack_bar = ft.SnackBar(content=ft.Text("Selecciona una categoría."), bgcolor="red")
             self.page.snack_bar.open = True
@@ -218,6 +226,8 @@ class AddTransactionApp:
             return
 
         monto_valor = float(monto)
+
+        # Si es gasto, se descuenta del saldo global
         if self.transaction_type == "GASTOS":
             if monto_valor > Sesion.saldo_global:
                 self.page.snack_bar = ft.SnackBar(
@@ -229,9 +239,9 @@ class AddTransactionApp:
                 return
             Sesion.saldo_global -= monto_valor
         else:
-            Sesion.saldo_global += monto_valor
+            Sesion.saldo_global += monto_valor   # Si es ingreso, se suma al saldo global
 
-        # Guardar en MongoDB
+        # Registro de la transacción en MongoDB
         from datetime import datetime as _dt
         db = conectar_mongo()
         gastos_col = db["gastos"]
@@ -246,12 +256,13 @@ class AddTransactionApp:
         }
 
         print("Guardando gasto para:", usuario_actual)
-        gastos_col.insert_one(gasto)
+        gastos_col.insert_one(gasto)   # Inserta el gasto en la colecció
 
+        # Notifica al usuario que se ha guardado
         self.page.snack_bar = ft.SnackBar(content=ft.Text("Transacción añadida correctamente ✅"), bgcolor="#c6ff00")
         self.page.snack_bar.open = True
         self.page.update()
-        time.sleep(1)
+        time.sleep(1)    # Espera para mostrar el mensaje
 
         # Volver a MainApp y actualizar el gráfico
         self.page.controls.clear()

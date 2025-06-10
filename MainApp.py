@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from LoginApp import conectar_mongo
 from Sesion import usuario_actual
 import matplotlib
-matplotlib.use('Agg')
+matplotlib.use('Agg')   # Evita el uso de GUI para renderizado
 import matplotlib.pyplot as plt
 import io, base64
 
@@ -16,21 +16,21 @@ def obtener_transacciones_semana_actual(tipo: str):
     db = conectar_mongo()
     coleccion = db["gastos"] if tipo == "GASTOS" else db["ingresos"]
     hoy = datetime.now()
-    inicio_semana = hoy - timedelta(days=hoy.weekday())
-    fin_semana = inicio_semana + timedelta(days=6)
+    inicio_semana = hoy - timedelta(days=hoy.weekday())    # Lunes
+    fin_semana = inicio_semana + timedelta(days=6)          # Domingo
     return list(coleccion.find({
         "usuario": {"$regex": f"^{usuario_actual.strip()}$", "$options": "i"},
         "tipo": tipo,
         "fecha": {"$gte": inicio_semana, "$lte": fin_semana}
     }))
 
-# Función para generar gráfico y lista según tipo
+# Función que construye el gráfico circular y lo muestra como imagen
 def mostrar_grafico_y_lista(tipo: str):
     transacciones = obtener_transacciones_semana_actual(tipo)
     if not transacciones:
         return ft.Text(f"No hubo {tipo.lower()} esta semana", size=16, text_align="center")
 
-    # Preparar datos por categoría
+    # Agrupa montos por categoría
     resumen = {}
     for t in transacciones:
         cat = t.get("categoria", "Sin categoría")
@@ -39,7 +39,7 @@ def mostrar_grafico_y_lista(tipo: str):
     sizes = list(resumen.values())
     colors = DEFAULT_COLORS[:len(labels)]
 
-    # Dibujar gráfico circular
+    # Crea el gráfico circular
     fig, ax = plt.subplots(figsize=(4, 4), dpi=100)
     plt.subplots_adjust(left=0.01, right=0.99, top=0.99, bottom=0.01)
     wedges, texts, autotexts = ax.pie(
@@ -53,9 +53,9 @@ def mostrar_grafico_y_lista(tipo: str):
     for t in autotexts:
         t.set_color('white')
         t.set_fontsize(10)
-    ax.axis('equal')
+    ax.axis('equal')    # Mantiene el gráfico como círculo
 
-    # Convertir figura a imagen base64
+    ## Convierte la imagen en base64 para mostrarla en Flet
     buf = io.BytesIO()
     fig.savefig(buf, format='png', bbox_inches='tight', transparent=True)
     plt.close(fig)
@@ -65,12 +65,13 @@ def mostrar_grafico_y_lista(tipo: str):
 
     return ft.Image(src_base64=img_b64, width=320, height=320, fit=ft.ImageFit.CONTAIN)
 
+# Clase principal de la aplicación después del login
 class MainApp:
     def __init__(self, page: ft.Page):
-        # Primero guardamos la referencia
+        # Guarda la referencia de la página Flet
         self.page = page
         
-        # Ahora sí podemos usar self.page
+       # Menú de navegación lateral
         self.page.on_navigation_drawer_change = self.navegar_menu
         self.page.navigation_drawer = ft.NavigationDrawer(
             controls=[
@@ -82,20 +83,23 @@ class MainApp:
             ]
         )
         # Y el scroll
-        self.page.vertical_scroll = ScrollMode.AUTO
+        self.page.vertical_scroll = ScrollMode.AUTO  # Habilita scroll vertical automático
 
         # Tab por defecto
         self.active_tab = "GASTOS"
 
-        # Finalmente construimos la UI
+        # Construye la interfaz inicial
         self.build()
 
+    # Construye toda la interfaz principal
     def build(self):
+        # Mensaje de bienvenida
         saludo = ft.Text(
             f"¡Bienvenido, {usuario_actual}!",
             size=20, weight="bold", color="white", text_align="center"
         )
 
+         # Campo editable del total
         self.total_input = ft.TextField(
             value="0", text_align=ft.TextAlign.CENTER,
             width=120, height=40, border_radius=10,
@@ -104,6 +108,7 @@ class MainApp:
             on_change=self.total_updated
         )
 
+        # Encabezado con íconos y total
         header = ft.Container(
             bgcolor="#2e7d32",
             padding=ft.padding.symmetric(horizontal=15, vertical=12),
@@ -120,10 +125,11 @@ class MainApp:
             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN, vertical_alignment=ft.CrossAxisAlignment.CENTER)
         )
 
-        # Botones de tabs
+        # Tabs para GASTOS e INGRESOS
         self.tab_gastos = ft.TextButton("GASTOS", on_click=self.set_tab, data="GASTOS")
         self.tab_ingresos = ft.TextButton("INGRESOS", on_click=self.set_tab, data="INGRESOS")
 
+        # Selector de período (aún no implementado completamente)
         period_selector = ft.Row([
             ft.TextButton("Día", on_click=self.change_period),
             ft.TextButton("Semana", on_click=self.change_period),
@@ -133,14 +139,14 @@ class MainApp:
 
         date_range = ft.Text("28 abr – 4 may", size=16, weight="bold")
 
-        # Container del gráfico para el tab activo
+        # Contenedor para el gráfico generado
         self.chart_container = ft.Container(
             content=mostrar_grafico_y_lista(self.active_tab),
             alignment=ft.alignment.center,
             width=320, height=320, bgcolor="#cfd8dc", border_radius=160
         )
 
-        # Texto total gastado/ingresado según tab
+        # Texto con el total gastado/ingresado
         resumen_inicial = self.obtener_resumen()
         total_value = sum(resumen_inicial.values())
         prefijo = "gastado" if self.active_tab == "GASTOS" else "ingresado"
@@ -149,10 +155,11 @@ class MainApp:
             color="white", weight="bold", size=16, text_align="center"
         )
 
-        # Resumen por categoría
+        # Contenedor para el resumen por categoría
         self.summary_container = ft.Column(spacing=6)
         self.update_resumen()
 
+        # Tarjeta central con toda la información de la semana
         card = ft.Container(
             content=ft.Column([
                 ft.Row([self.tab_gastos, self.tab_ingresos], alignment=ft.MainAxisAlignment.CENTER),
@@ -170,6 +177,7 @@ class MainApp:
             shadow=ft.BoxShadow(blur_radius=10, spread_radius=1, color="black")
         )
 
+        # Agrega todo a la página principal
         self.page.controls.clear()
         self.page.add(
             ft.ListView(
@@ -178,28 +186,35 @@ class MainApp:
             )
         )
 
+         # Botón flotante para agregar una nueva transacción
         self.page.floating_action_button = ft.FloatingActionButton(
             icon=ft.Icons.ADD, bgcolor="#FFEB3B", on_click=self.add_transaction
         )
         self.page.update()
 
+    # Abre el menú de navegación lateral
     def open_drawer(self, e):
         self.page.show_navigation_drawer = True
         self.page.update()
 
+    # Placeholder para navegación a perfil
     def on_profile(self, e):
         print("Navegar a Perfil de usuario")  # implementar navegación
 
+    # Alterna entre modo claro y oscuro
     def on_toggle_dark_mode(self, e):
         self.page.theme_mode = ft.ThemeMode.DARK if self.page.theme_mode == ft.ThemeMode.LIGHT else ft.ThemeMode.LIGHT
         self.page.update()
 
+    # Placeholder para navegación a configuración
     def on_settings(self, e):
         print("Navegar a Configuración")  # implementar navegación
 
+    # Placeholder para cerrar sesión
     def on_logout(self, e):
         print("Cerrar sesión")  # implementar lógica de cierre de sesión
 
+    # Calcula el total por categoría
     def obtener_resumen(self):
         resumen = {}
         for t in obtener_transacciones_semana_actual(self.active_tab):
@@ -207,6 +222,7 @@ class MainApp:
             resumen[cat] = resumen.get(cat, 0) + t.get("monto", 0)
         return resumen
 
+    # Actualiza la lista resumen de categorías
     def update_resumen(self):
         resumen = self.obtener_resumen()
         controles = []
@@ -223,6 +239,7 @@ class MainApp:
             controles = [ft.Text(f"No hay {self.active_tab.lower()} para mostrar.", color="white")]
         self.summary_container.controls = controles
 
+    # Cambia entre las tabs de GASTOS / INGRESOS
     def set_tab(self, e):
         self.active_tab = e.control.data
         self.chart_container.content = mostrar_grafico_y_lista(self.active_tab)
@@ -232,9 +249,11 @@ class MainApp:
         self.total_spent_text.value = f"Total {prefijo}: ${total_value:,.2f}"
         self.page.update()
 
+    # Evento para cambiar el período (por ahora solo imprime)
     def change_period(self, e):
         print(f"Período cambiado a: {e.control.text}")
 
+     # Evento cuando se cambia el valor del total
     def total_updated(self, e):
         self.page.snack_bar = ft.SnackBar(
             content=ft.Text(f"Monto actualizado: ${self.total_input.value}"),
@@ -243,12 +262,14 @@ class MainApp:
         self.page.snack_bar.open = True
         self.page.update()
 
+     # Navega a la pantalla de nueva transacción
     def add_transaction(self, e):
         from NuevaTransaccion import AddTransactionApp
         self.page.controls.clear()
         AddTransactionApp(self.page, self)
         self.page.update()
 
+    # Método externo que actualiza el gráfico y el resumen
     def actualizar_grafico(self):
         self.chart_container.content = mostrar_grafico_y_lista(self.active_tab)
         total_value = sum(self.obtener_resumen().values())
@@ -257,6 +278,7 @@ class MainApp:
         self.update_resumen()
         self.page.update()
         
+    # Maneja la navegación del menú lateral
     def navegar_menu(self, e):
         label = e.control.label
         if label == "Perfil de usuario":
