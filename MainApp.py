@@ -3,7 +3,6 @@ from flet import ScrollMode
 from datetime import datetime, timedelta
 from LoginApp import conectar_mongo
 from Sesion import usuario_actual
-import Sesion  # Importamos el módulo para saldo dinámico
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -12,29 +11,30 @@ import io, base64
 # Colores por defecto de Matplotlib para usar en el pie y leyenda
 DEFAULT_COLORS = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
-def obtener_gastos_semana_actual():
+# Función genérica para obtener transacciones (GASTOS o INGRESOS) de la semana actual
+def obtener_transacciones_semana_actual(tipo: str):
     db = conectar_mongo()
-    coleccion = db["gastos"]
+    coleccion = db["gastos"] if tipo == "GASTOS" else db["ingresos"]
     hoy = datetime.now()
     inicio_semana = hoy - timedelta(days=hoy.weekday())
     fin_semana = inicio_semana + timedelta(days=6)
-    print("Consultando gastos de:", usuario_actual)
     return list(coleccion.find({
         "usuario": {"$regex": f"^{usuario_actual.strip()}$", "$options": "i"},
-        "tipo": "GASTOS",
+        "tipo": tipo,
         "fecha": {"$gte": inicio_semana, "$lte": fin_semana}
     }))
 
-def mostrar_grafico_y_lista():
-    gastos = obtener_gastos_semana_actual()
-    if not gastos:
-        return ft.Text("No hubo gastos esta semana", size=16, text_align="center")
+# Función para generar gráfico y lista según tipo
+def mostrar_grafico_y_lista(tipo: str):
+    transacciones = obtener_transacciones_semana_actual(tipo)
+    if not transacciones:
+        return ft.Text(f"No hubo {tipo.lower()} esta semana", size=16, text_align="center")
 
-    # Preparar datos
+    # Preparar datos por categoría
     resumen = {}
-    for g in gastos:
-        cat = g.get("categoria", "Sin categoría")
-        resumen[cat] = resumen.get(cat, 0) + g.get("monto", 0)
+    for t in transacciones:
+        cat = t.get("categoria", "Sin categoría")
+        resumen[cat] = resumen.get(cat, 0) + t.get("monto", 0)
     labels = list(resumen.keys())
     sizes = list(resumen.values())
     colors = DEFAULT_COLORS[:len(labels)]
@@ -67,7 +67,8 @@ def mostrar_grafico_y_lista():
 
 class MainApp:
     def __init__(self, page: ft.Page):
-        # Habilitamos scroll vertical
+        # Establecer tab por defecto antes de build
+        self.active_tab = "GASTOS"
         page.vertical_scroll = ScrollMode.AUTO
         self.page = page
         self.build()
@@ -78,10 +79,8 @@ class MainApp:
             size=20, weight="bold", color="white", text_align="center"
         )
 
-        # Mostramos el saldo actual en el header
         self.total_input = ft.TextField(
-            value=f"{Sesion.saldo_global:.2f}",  # Valor inicial del saldo
-            text_align=ft.TextAlign.CENTER,
+            value="0", text_align=ft.TextAlign.CENTER,
             width=120, height=40, border_radius=10,
             border_color="transparent", bgcolor="#FFFFFF",
             color="#000000", suffix_text="$",
@@ -104,7 +103,7 @@ class MainApp:
             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN, vertical_alignment=ft.CrossAxisAlignment.CENTER)
         )
 
-        self.active_tab = "GASTOS"
+        # Botones de tabs
         self.tab_gastos = ft.TextButton("GASTOS", on_click=self.set_tab, data="GASTOS")
         self.tab_ingresos = ft.TextButton("INGRESOS", on_click=self.set_tab, data="INGRESOS")
 
@@ -117,18 +116,19 @@ class MainApp:
 
         date_range = ft.Text("28 abr – 4 may", size=16, weight="bold")
 
-        # Contenedor del gráfico
+        # Container del gráfico para el tab activo
         self.chart_container = ft.Container(
-            content=mostrar_grafico_y_lista(),
+            content=mostrar_grafico_y_lista(self.active_tab),
             alignment=ft.alignment.center,
             width=320, height=320, bgcolor="#cfd8dc", border_radius=160
         )
 
-        # Texto total gastado
+        # Texto total gastado/ingresado según tab
         resumen_inicial = self.obtener_resumen()
-        total_spent = sum(resumen_inicial.values())
+        total_value = sum(resumen_inicial.values())
+        prefijo = "gastado" if self.active_tab == "GASTOS" else "ingresado"
         self.total_spent_text = ft.Text(
-            f"Total gastado: ${total_spent:,.2f}",
+            f"Total {prefijo}: ${total_value:,.2f}",
             color="white", weight="bold", size=16, text_align="center"
         )
 
@@ -146,7 +146,7 @@ class MainApp:
                 ft.Row([self.chart_container], alignment=ft.MainAxisAlignment.CENTER),
                 ft.Row([self.total_spent_text], alignment=ft.MainAxisAlignment.CENTER),
                 ft.Container(height=15),
-                ft.Text("Resumen por categoría:", color="white", weight="bold"),
+                ft.Text(f"Resumen de {self.active_tab.lower()} por categoría:", color="white", weight="bold"),
                 self.summary_container
             ], spacing=10),
             padding=20, bgcolor="#1e1e1e", border_radius=20,
@@ -167,10 +167,11 @@ class MainApp:
         self.page.update()
 
     def obtener_resumen(self):
+        # Obtiene resumen según tab activo
         resumen = {}
-        for g in obtener_gastos_semana_actual():
-            cat = g.get("categoria", "Sin categoría")
-            resumen[cat] = resumen.get(cat, 0) + g.get("monto", 0)
+        for t in obtener_transacciones_semana_actual(self.active_tab):
+            cat = t.get("categoria", "Sin categoría")
+            resumen[cat] = resumen.get(cat, 0) + t.get("monto", 0)
         return resumen
 
     def update_resumen(self):
@@ -180,23 +181,26 @@ class MainApp:
             color = DEFAULT_COLORS[i % len(DEFAULT_COLORS)]
             controles.append(
                 ft.Row([
-                    ft.Container(
-                        width=12, height=12,
-                        bgcolor=color,
-                        border_radius=3,
-                        margin=ft.margin.only(right=8)
-                    ),
+                    ft.Container(width=12, height=12, bgcolor=color, border_radius=3, margin=ft.margin.only(right=8)),
                     ft.Text(cat, color="white", expand=True),
                     ft.Text(f"${monto:,.2f}", color="white")
                 ])
             )
         if not controles:
-            controles = [ft.Text("No hay datos para mostrar.", color="white")]
+            controles = [ft.Text(f"No hay {self.active_tab.lower()} para mostrar.", color="white")] 
         self.summary_container.controls = controles
 
     def set_tab(self, e):
+        # Cambiar tab y refrescar UI
         self.active_tab = e.control.data
-        self.actualizar_grafico()
+        # Actualizar gráficos y resumen
+        self.chart_container.content = mostrar_grafico_y_lista(self.active_tab)
+        self.update_resumen()
+        # Actualizar texto total
+        total_value = sum(self.obtener_resumen().values())
+        prefijo = "gastado" if self.active_tab == "GASTOS" else "ingresado"
+        self.total_spent_text.value = f"Total {prefijo}: ${total_value:,.2f}"
+        self.page.update()
 
     def change_period(self, e):
         print(f"Período cambiado a: {e.control.text}")
@@ -211,15 +215,23 @@ class MainApp:
 
     def add_transaction(self, e):
         from NuevaTransaccion import AddTransactionApp
+        # Limpiamos la vista actual…
         self.page.controls.clear()
-        AddTransactionApp(self.page)
+        # …y le pasamos self como main_app a la pantalla de nueva transacción
+        AddTransactionApp(self.page, self)
+        # Finalmente refrescamos
+        self.page.update()
+
 
     def actualizar_grafico(self):
-        self.chart_container.content = mostrar_grafico_y_lista()
+        # Actualiza el contenido del gráfico
+        self.chart_container.content = mostrar_grafico_y_lista(self.active_tab)
+        # Recalcula y actualiza el texto total
+        total_value = sum(self.obtener_resumen().values())
+        prefijo = "gastado" if self.active_tab == "GASTOS" else "ingresado"
+        self.total_spent_text.value = f"Total {prefijo}: ${total_value:,.2f}"
+        # Actualiza también el resumen por categorías
         self.update_resumen()
-        # Actualizamos también el saldo mostrado en el header
-        self.total_input.value = f"{Sesion.saldo_global:.2f}"
-        # Total gastado
-        total_spent = sum(self.obtener_resumen().values())
-        self.total_spent_text.value = f"Total Gastado: ${total_spent:,.2f}"
+        # Finalmente refresca la página
         self.page.update()
+

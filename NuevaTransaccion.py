@@ -18,10 +18,11 @@ def conectar_mongo():
 
 # Clase principal para añadir una transacción
 class AddTransactionApp:
-    def __init__(self, page: ft.Page):
+    def __init__(self, page: ft.Page, main_app):
         self.page = page  # Guarda referencia a la página actual
-        self.selected_category = None  # Categoría seleccionada (ninguna al inicio)
-        self.transaction_type = "GASTOS"  # Tipo de transacción activa (GASTOS o INGRESOS)
+        self.main_app = main_app  # Referencia a la instancia de MainApp
+        self.transaction_type = "GASTOS"  # Tipo por defecto
+        self.selected_category = None       # Categoría seleccionada
         self.build()  # Construye la interfaz
 
     # Método que construye toda la interfaz de la pantalla
@@ -123,10 +124,10 @@ class AddTransactionApp:
         self.page.update()
 
     def go_back(self, e):
-        from MainApp import MainApp
+        # Regresa a la vista principal usando la instancia original
         self.page.controls.clear()
-        MainApp(self.page)
-        
+        self.main_app.build()
+
     # Método que construye las categorías según el tipo de transacción
     def build_categories(self):
         if self.transaction_type == "GASTOS":
@@ -204,6 +205,7 @@ class AddTransactionApp:
         monto = self.amount_field.value.strip()
         comentario = self.comment_field.value.strip()
 
+        # Validaciones de monto y categoría
         if not monto or not monto.replace(".", "", 1).isdigit() or float(monto) <= 0:
             self.page.snack_bar = ft.SnackBar(content=ft.Text("Ingresa un monto válido."), bgcolor="red")
             self.page.snack_bar.open = True
@@ -230,7 +232,8 @@ class AddTransactionApp:
         else:
             Sesion.saldo_global += monto_valor
 
-        from datetime import datetime
+        # Guardar en MongoDB
+        from datetime import datetime as _dt
         db = conectar_mongo()
         gastos_col = db["gastos"]
 
@@ -239,10 +242,10 @@ class AddTransactionApp:
             "categoria": self.selected_category,
             "monto": monto_valor,
             "comentario": comentario,
-            "fecha": datetime.now(),
+            "fecha": _dt.now(),
             "tipo": self.transaction_type
         }
-        
+
         print("Guardando gasto para:", usuario_actual)
         gastos_col.insert_one(gasto)
 
@@ -251,7 +254,7 @@ class AddTransactionApp:
         self.page.update()
         time.sleep(1)
 
-        from MainApp import MainApp
+        # Volver a MainApp y actualizar el gráfico
         self.page.controls.clear()
-        main_app = MainApp(self.page)
-        main_app.actualizar_grafico()
+        self.main_app.build()
+        self.main_app.actualizar_grafico()
