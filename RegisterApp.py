@@ -35,7 +35,7 @@ class RegisterApp:
             height=50,
             dense=True,
             suffix=ft.IconButton(  # Icono al final del campo
-                icon=ft.icons.VISIBILITY_OFF,
+                icon=ft.Icons.VISIBILITY_OFF,
                 on_click=self.toggle_password,  # Alternar visibilidad al hacer clic
             ),
         )
@@ -48,7 +48,7 @@ class RegisterApp:
             height=50,
             dense=True,
             suffix=ft.IconButton(
-                icon=ft.icons.VISIBILITY_OFF,
+                icon=ft.Icons.VISIBILITY_OFF,
                 on_click=self.toggle_confirm_password,  # Alternar visibilidad
             ),
         )
@@ -104,7 +104,7 @@ class RegisterApp:
         self.show_password = not self.show_password  # Cambia el estado
         self.password.password = not self.show_password  # Cambia visibilidad
         self.password.suffix.icon = (
-            ft.icons.VISIBILITY if self.show_password else ft.icons.VISIBILITY_OFF
+            ft.Icons.VISIBILITY if self.show_password else ft.Icons.VISIBILITY_OFF
         )  # Cambia el icono del botón
         self.page.update()
 
@@ -113,7 +113,7 @@ class RegisterApp:
         self.show_confirm_password = not self.show_confirm_password
         self.confirm_password.password = not self.show_confirm_password
         self.confirm_password.suffix.icon = (
-            ft.icons.VISIBILITY if self.show_confirm_password else ft.icons.VISIBILITY_OFF
+            ft.Icons.VISIBILITY if self.show_confirm_password else ft.Icons.VISIBILITY_OFF
         )
         self.page.update()
 
@@ -175,7 +175,7 @@ class RegisterApp:
         coleccion.insert_one(nuevo_usuario)
 
         self.show_snackbar("¡Cuenta creada exitosamente! 🎉", "green")
-        time.sleep(1)
+        self.page.update()
 
         # Regresar automáticamente al login
         from LoginApp import LoginApp

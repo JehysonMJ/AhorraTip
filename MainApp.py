@@ -67,10 +67,27 @@ def mostrar_grafico_y_lista(tipo: str):
 
 class MainApp:
     def __init__(self, page: ft.Page):
-        # Establecer tab por defecto antes de build
-        self.active_tab = "GASTOS"
-        page.vertical_scroll = ScrollMode.AUTO
+        # Primero guardamos la referencia
         self.page = page
+        
+        # Ahora sí podemos usar self.page
+        self.page.on_navigation_drawer_change = self.navegar_menu
+        self.page.navigation_drawer = ft.NavigationDrawer(
+            controls=[
+                ft.NavigationDrawerDestination(icon=ft.Icons.PERSON,       label="Perfil de usuario"),
+                ft.NavigationDrawerDestination(icon=ft.Icons.DARK_MODE,    label="Modo oscuro"),
+                ft.Divider(),
+                ft.NavigationDrawerDestination(icon=ft.Icons.SETTINGS,     label="Configuración"),
+                ft.NavigationDrawerDestination(icon=ft.Icons.LOGOUT,       label="Cerrar sesión"),
+            ]
+        )
+        # Y el scroll
+        self.page.vertical_scroll = ScrollMode.AUTO
+
+        # Tab por defecto
+        self.active_tab = "GASTOS"
+
+        # Finalmente construimos la UI
         self.build()
 
     def build(self):
@@ -91,7 +108,7 @@ class MainApp:
             bgcolor="#2e7d32",
             padding=ft.padding.symmetric(horizontal=15, vertical=12),
             content=ft.Row([
-                ft.IconButton(icon=ft.Icons.MENU, icon_color="white", on_click=lambda e: print("Menu")),
+                ft.IconButton(icon=ft.Icons.MENU, icon_color="white", on_click=self.open_drawer),
                 ft.Column([
                     ft.Row([
                         ft.Icon(name=ft.Icons.SAVINGS, color="white", size=20),
@@ -166,8 +183,24 @@ class MainApp:
         )
         self.page.update()
 
+    def open_drawer(self, e):
+        self.page.show_navigation_drawer = True
+        self.page.update()
+
+    def on_profile(self, e):
+        print("Navegar a Perfil de usuario")  # implementar navegación
+
+    def on_toggle_dark_mode(self, e):
+        self.page.theme_mode = ft.ThemeMode.DARK if self.page.theme_mode == ft.ThemeMode.LIGHT else ft.ThemeMode.LIGHT
+        self.page.update()
+
+    def on_settings(self, e):
+        print("Navegar a Configuración")  # implementar navegación
+
+    def on_logout(self, e):
+        print("Cerrar sesión")  # implementar lógica de cierre de sesión
+
     def obtener_resumen(self):
-        # Obtiene resumen según tab activo
         resumen = {}
         for t in obtener_transacciones_semana_actual(self.active_tab):
             cat = t.get("categoria", "Sin categoría")
@@ -187,16 +220,13 @@ class MainApp:
                 ])
             )
         if not controles:
-            controles = [ft.Text(f"No hay {self.active_tab.lower()} para mostrar.", color="white")] 
+            controles = [ft.Text(f"No hay {self.active_tab.lower()} para mostrar.", color="white")]
         self.summary_container.controls = controles
 
     def set_tab(self, e):
-        # Cambiar tab y refrescar UI
         self.active_tab = e.control.data
-        # Actualizar gráficos y resumen
         self.chart_container.content = mostrar_grafico_y_lista(self.active_tab)
         self.update_resumen()
-        # Actualizar texto total
         total_value = sum(self.obtener_resumen().values())
         prefijo = "gastado" if self.active_tab == "GASTOS" else "ingresado"
         self.total_spent_text.value = f"Total {prefijo}: ${total_value:,.2f}"
@@ -215,23 +245,26 @@ class MainApp:
 
     def add_transaction(self, e):
         from NuevaTransaccion import AddTransactionApp
-        # Limpiamos la vista actual…
         self.page.controls.clear()
-        # …y le pasamos self como main_app a la pantalla de nueva transacción
         AddTransactionApp(self.page, self)
-        # Finalmente refrescamos
         self.page.update()
 
-
     def actualizar_grafico(self):
-        # Actualiza el contenido del gráfico
         self.chart_container.content = mostrar_grafico_y_lista(self.active_tab)
-        # Recalcula y actualiza el texto total
         total_value = sum(self.obtener_resumen().values())
         prefijo = "gastado" if self.active_tab == "GASTOS" else "ingresado"
         self.total_spent_text.value = f"Total {prefijo}: ${total_value:,.2f}"
-        # Actualiza también el resumen por categorías
         self.update_resumen()
-        # Finalmente refresca la página
         self.page.update()
+        
+    def navegar_menu(self, e):
+        label = e.control.label
+        if label == "Perfil de usuario":
+            self.on_profile(e)
+        elif label == "Modo oscuro":
+            self.on_toggle_dark_mode(e)
+        elif label == "Configuración":
+            self.on_settings(e)
+        elif label == "Cerrar sesión":
+            self.on_logout(e)
 
