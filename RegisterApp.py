@@ -139,45 +139,76 @@ class RegisterApp:
 
     # Método que realiza el proceso de registro
     def register(self, e):
-        self.dialog.open = False
-        self.page.update()
+
+        print("🔔 register() llamado")
+        print("Valores ➜",
+          "nombre=", self.name.value,
+          "email=", self.email.value,
+          "usuario=", self.username.value,
+          "pass=", self.password.value,
+          "conf=", self.confirm_password.value)
+
 
         # Validaciones
-        if not all([self.name.value, self.email.value, self.username.value, self.password.value, self.confirm_password.value]):
+        if not all([self.name.value,
+                    self.email.value,
+                    self.username.value,
+                    self.password.value,
+                    self.confirm_password.value]):
+            print("⚠️ Campos incompletos")
             self.show_snackbar("Completa todos los campos.", "red")
             return
 
         if not self.is_valid_email(self.email.value):
+            print("⚠️ Email inválido")
             self.show_snackbar("Correo electrónico no válido.", "red")
             return
 
         if self.password.value != self.confirm_password.value:
+            print("⚠️ Contraseñas no coinciden")
             self.show_snackbar("Las contraseñas no coinciden.", "red")
             return
 
-        # Conexión a la base de datos
-        coleccion = conectar_mongo()
-
-        # Verificar si el usuario ya existe
-        if coleccion.find_one({"usuario": self.username.value.strip()}):
-            self.show_snackbar("El usuario ya existe.", "red")
+        try:
+            coleccion = conectar_mongo()
+            print("📡 Conexión a MongoDB OK:", coleccion.full_name if hasattr(coleccion, "full_name") else coleccion.name)
+        except Exception as ex:
+            print("❌ Error conectando a MongoDB:", ex)
+            self.show_snackbar("Error de conexión a la base de datos.", "red")
             return
 
-        # Insertar nuevo usuario
+        try:
+            existe = coleccion.find_one({"usuario": self.username.value.strip()})
+            print("🔍 Usuario existente en BD?", bool(existe))
+            if existe:
+                self.show_snackbar("El usuario ya existe.", "red")
+                return
+        except Exception as ex:
+            print("❌ Error al buscar usuario:", ex)
+            self.show_snackbar("Error al verificar usuario.", "red")
+            return
+
+         # 5) Intentar insertar
         nuevo_usuario = {
-            "nombre": self.name.value.strip(),
-            "correo": self.email.value.strip(),
-            "usuario": self.username.value.strip(),
-            "contraseña": self.password.value.strip(),  # Idealmente deberías encriptarla
-            "fecha_registro": time.strftime("%Y-%m-%dT%H:%M:%S")
-        }
+            "nombre":          self.name.value.strip(),
+            "correo":          self.email.value.strip(),
+            "usuario":         self.username.value.strip(),
+            "contraseña":      self.password.value.strip(),
+            "fecha_registro":  time.strftime("%Y-%m-%dT%H:%M:%S")
+         }
+        try:
+            resultado = coleccion.insert_one(nuevo_usuario)
+            print("✅ Insertado _id:", resultado.inserted_id)
+        except Exception as ex:
+            print("❌ Error al insertar usuario:", ex)
+            self.show_snackbar("Error al crear la cuenta.", "red")
+            return
 
-        coleccion.insert_one(nuevo_usuario)
-
+        # 6) Feedback al usuario y retorno al login
         self.show_snackbar("¡Cuenta creada exitosamente! 🎉", "green")
+        # refrescamos UI
         self.page.update()
 
-        # Regresar automáticamente al login
         from LoginApp import LoginApp
         self.page.controls.clear()
         LoginApp(self.page)
