@@ -10,7 +10,7 @@ def conectar_mongo():
     db = client["AhorraTip"]
     return db["gastos"]
 
-# Usuario actual (de la sesión)
+# Usuario actual
 usuario_actual = "JehysonMJ"
 
 # Obtener colección
